@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 import { api } from '../utils/api';
+import EmptyState from '../components/EmptyState';
+import Avatar from '../components/Avatar';
 import { useReveal } from '../hooks/useReveal';
 import PageHeader from '../components/PageHeader';
 import { useToast } from '../components/Toast';
@@ -64,10 +66,10 @@ export default function Attendance(){
             <table>
               <thead><tr><th>Emp</th><th>Check In</th><th>Check Out</th><th>Work Hours</th><th>Extra Hours</th><th>Status</th></tr></thead>
               <tbody>
-                {adminRows.length===0 ? <tr><td colSpan={6} style={{ textAlign:'center', padding:20, color:'var(--neutral-500)' }}>No records for {date}</td></tr> :
+                {adminRows.length===0 ? <tr><td colSpan={6}><EmptyState compact icon="calendar" title={`No attendance on ${date}`} hint="Weekend, holiday, or nobody has checked in yet." /></td></tr> :
                 adminRows.map((r:any)=>(
                   <tr key={r.id}>
-                    <td><div style={{ display:'flex', alignItems:'center', gap:8 }}><img src={`https://i.pravatar.cc/40?u=${r.employee_id}`} style={{ width:28, height:28, borderRadius:999 }} alt="" />{r.employeeName||r.employee_id.slice(0,6)}</div></td>
+                    <td><div style={{ display:'flex', alignItems:'center', gap:8 }}><Avatar src={r.photo_url} name={r.employeeName} size={28} />{r.employeeName||r.employee_id.slice(0,6)}</div></td>
                     <td>{r.check_in?.slice(11,16)||'—'}</td>
                     <td>{r.check_out?.slice(11,16)||'—'}</td>
                     <td>{r.worked_minutes ? `${Math.floor(r.worked_minutes/60).toString().padStart(2,'0')}:${String(r.worked_minutes%60).padStart(2,'0')}` : '—'}</td>
@@ -114,7 +116,7 @@ export default function Attendance(){
             <table>
               <thead><tr><th>Date</th><th>Check In</th><th>Check Out</th><th>Work Hours</th><th>Extra Hours</th></tr></thead>
               <tbody>
-                {empRows.length===0 ? <tr><td colSpan={5} style={{ textAlign:'center', padding:20, color:'var(--neutral-500)' }}>No records for {month}</td></tr> :
+                {empRows.length===0 ? <tr><td colSpan={5}><EmptyState compact icon="calendar" title={`No attendance in ${month}`} hint="Your check-ins for this month will appear here." /></td></tr> :
                 empRows.map((r:any)=>(
                   <tr key={r.id}><td>{r.date.slice(0,10)}</td><td>{r.check_in?.slice(11,16)||'—'}</td><td>{r.check_out?.slice(11,16)||'—'}</td><td>{r.worked_minutes ? `${Math.floor(r.worked_minutes/60)}:${String(r.worked_minutes%60).padStart(2,'0')}`:'—'}</td><td>{r.extra_minutes||'—'}</td></tr>
                 ))}

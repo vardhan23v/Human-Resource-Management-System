@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 import { api } from '../utils/api';
+import EmptyState from '../components/EmptyState';
+import PageHeader from '../components/PageHeader';
 import { useReveal } from '../hooks/useReveal';
 import { useToast } from '../components/Toast';
 import { useAuth } from '../context/AuthContext';
@@ -29,9 +31,7 @@ export default function Payroll(){
 
   return (
     <div className="container" style={{ paddingTop:24, paddingBottom:40 }}>
-      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:16 }}>
-        <h2 style={{ margin:0 }}>Payroll</h2>
-        <div style={{ display:'flex', gap:8, alignItems:'center' }}>
+      <PageHeader title="Payroll" subtitle="Run, review and finalise monthly payslips." actions={<>
           <input type="month" className="input" value={month} onChange={e=> setMonth(e.target.value)} style={{ width:150 }} />
           {isAdmin && (
             <>
@@ -41,8 +41,7 @@ export default function Payroll(){
               <button className="btn btn-ghost" onClick={async()=>{ if(confirm('Finalize payroll for '+month+'? Attendance edits will require Admin override.')){ await api('/api/payroll/finalize',{method:'POST', body:JSON.stringify({month})}); toast.success('Finalized'); load(); }}}>Finalize</button>
             </>
           )}
-        </div>
-      </div>
+      </>} />
 
       {salary && !isAdmin && (
         <div className="card fade-up" style={{ '--i': 1, marginBottom:16 } as any}>
@@ -55,7 +54,7 @@ export default function Payroll(){
         <table>
           <thead><tr><th>Employee</th><th>Month</th><th>Gross</th><th>Deductions</th><th>Net</th><th>Payable Days</th><th>Status</th><th>PDF</th></tr></thead>
           <tbody>
-            {payslips.length===0 ? <tr><td colSpan={8} style={{ textAlign:'center', padding:20, color:'var(--neutral-500)' }}>No payslips for {month}</td></tr> :
+            {payslips.length===0 ? <tr><td colSpan={8}><EmptyState compact icon="receipt" title={`No payslips for ${month}`} hint={isAdmin ? 'Run payroll to generate payslips for this month.' : 'Payslips appear here once payroll has been run.'} /></td></tr> :
             payslips.map((p:any)=>(
               <tr key={p.id}>
                 <td>{p.employeeName||p.employee_id.slice(0,6)}</td>

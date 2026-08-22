@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { api } from '../utils/api';
+import EmptyState from '../components/EmptyState';
 import AnimatedNumber from '../components/AnimatedNumber';
 import PageHeader from '../components/PageHeader';
 import Skeleton from '../components/Skeleton';
@@ -12,20 +13,20 @@ export default function Dashboard(){
   if(!stats) return (
     <div className="container" style={{ paddingTop:24 }}>
       <Skeleton height={32} width={220} style={{ marginBottom:20 }} />
-      <div style={{ display:'grid', gridTemplateColumns:'repeat(4, 1fr)', gap:12, marginBottom:16 }}>{[0,1,2,3].map(i=> <div key={i} className="skeleton" style={{ height:96 }} />)}</div>
-      <div style={{ display:'grid', gridTemplateColumns:'2fr 1fr', gap:16 }}><div className="skeleton" style={{ height:220 }} /><div className="skeleton" style={{ height:220 }} /></div>
+      <div className="grid-4" style={{ marginBottom:16 }}>{[0,1,2,3].map(i=> <div key={i} className="skeleton" style={{ height:96 }} />)}</div>
+      <div className="grid-2-1"><div className="skeleton" style={{ height:220 }} /><div className="skeleton" style={{ height:220 }} /></div>
     </div>
   );
   return (
     <div className="container" style={{ paddingTop:24, paddingBottom:40 }}>
       <PageHeader title="Dashboard" subtitle="A live pulse of your organisation today." />
-      <div style={{ display:'grid', gridTemplateColumns:'repeat(4, 1fr)', gap:12, marginBottom:16 }}>
+      <div className="grid-4" style={{ marginBottom:16 }}>
         <Stat i={1} label="Headcount" value={stats.headcount} sub="Active employees" />
         <Stat i={2} label="Present today" value={stats.presentToday} sub={`${stats.headcount? Math.round(stats.presentToday/stats.headcount*100):0}% attendance`} accent />
         <Stat i={3} label="Pending approvals" value={stats.pendingLeaves + stats.pendingRegularizations} sub={`${stats.pendingLeaves} leave • ${stats.pendingRegularizations} regularization`} />
         <Stat i={4} label="Leaves this month" value={stats.leavesByType?.reduce((s:any,x:any)=> s+Number(x.count),0) || 0} sub="Across all types" />
       </div>
-      <div style={{ display:'grid', gridTemplateColumns:'2fr 1fr', gap:16 }}>
+      <div className="grid-2-1">
         <div className="card fade-up" style={{ '--i': 5 } as any}>
           <h4 style={{ margin:'0 0 12px' }}>Attendance % Trend (7 days)</h4>
           <div style={{ display:'flex', alignItems:'flex-end', gap:6, height:120 }}>
@@ -39,7 +40,7 @@ export default function Dashboard(){
                 </div>
               );
             })}
-            {(stats.trend||[]).length===0 && <div style={{ fontSize:13, color:'var(--neutral-500)' }}>No data yet</div>}
+            {(stats.trend||[]).length===0 && <EmptyState compact icon="calendar" title="No attendance yet" hint="Trend appears once people start checking in." />}
           </div>
         </div>
         <div className="card fade-up" style={{ '--i': 6 } as any}>
@@ -50,7 +51,7 @@ export default function Dashboard(){
                 <span>{l.name}</span><span style={{ background:'var(--accent-weak)', padding:'2px 8px', borderRadius:999, fontWeight:700 }}>{l.count}</span>
               </div>
             ))}
-            {(stats.leavesByType||[]).length===0 && <div style={{ fontSize:13, color:'var(--neutral-500)' }}>No leaves this month</div>}
+            {(stats.leavesByType||[]).length===0 && <EmptyState compact icon="sun" title="No leaves this month" />}
           </div>
           <h4 style={{ margin:'16px 0 8px' }}>Birthdays this week</h4>
           {(stats.birthdays||[]).map((b:any)=> <div key={b.name} style={{ fontSize:13, padding:'6px 0', borderBottom:'1px solid var(--neutral-100)' }}>🎂 {b.name} — {b.dob.slice(5)}</div>)}

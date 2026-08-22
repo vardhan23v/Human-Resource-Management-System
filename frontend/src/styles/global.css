@@ -77,3 +77,27 @@ a:hover > .brand-mark { transform: rotate(-8deg) scale(1.06); box-shadow: 0 6px 
 ::selection { background: var(--accent-light); color: var(--accent-hover); }
 html { scroll-behavior: smooth; }
 .search-hit { transition: background 120ms; } .search-hit:hover { background: var(--accent-weak); }
+
+/* ───────────── Polish v2.2 ───────────── */
+.empty-state { display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; }
+.empty-icon { width:44px; height:44px; border-radius:12px; background:var(--accent-weak); color:var(--accent); display:flex; align-items:center; justify-content:center; margin-bottom:12px; }
+.site-footer { margin-top:auto; padding:20px 0; font-size:12px; color:var(--neutral-400); border-top:1px solid var(--neutral-200); background:rgba(255,255,255,0.5); }
+.site-footer a { color:var(--neutral-500); text-decoration:none; font-weight:600; transition:color 150ms; } .site-footer a:hover { color:var(--accent); }
+.app-shell { min-height:100vh; display:flex; flex-direction:column; background:var(--bg); }
+.app-shell > .page-enter { flex:1; }
+.grid-4 { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; }
+.grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+.grid-2-1 { display:grid; grid-template-columns:2fr 1fr; gap:16px; }
+@media (max-width: 1024px) { .grid-4 { grid-template-columns:repeat(2,1fr); } }
+@media (max-width: 760px) {
+  .grid-4, .grid-2, .grid-2-1 { grid-template-columns:1fr; }
+  .nav-links { display:none; }
+  .container { padding:0 16px; }
+  .page-header h2 { font-size:22px; }
+}
+.icon-btn svg { display:block; }
+.notif-item { transition: transform 150ms var(--ease-out, ease-out), box-shadow 150ms, border-color 150ms; }
+.notif-item:hover { transform: translateY(-1px); box-shadow: var(--shadow-md); }
+.balance-chip { display:inline-flex; flex-direction:column; gap:6px; padding:10px 14px; border-radius:12px; background:white; border:1px solid var(--neutral-200); min-width:180px; }
+.balance-chip .bar { height:6px; background:var(--neutral-100); border-radius:999px; overflow:hidden; }
+.balance-chip .bar > span { display:block; height:100%; background:linear-gradient(90deg, var(--accent), #7C3AED); border-radius:999px; transition: width 600ms var(--ease-out, ease-out); }

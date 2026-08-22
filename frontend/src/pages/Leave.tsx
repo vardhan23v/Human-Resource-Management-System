@@ -1,5 +1,8 @@
 import { useEffect, useState } from 'react';
 import { api } from '../utils/api';
+import EmptyState from '../components/EmptyState';
+import Avatar from '../components/Avatar';
+import PageHeader from '../components/PageHeader';
 import { useReveal } from '../hooks/useReveal';
 import { useToast } from '../components/Toast';
 import { useAuth } from '../context/AuthContext';
@@ -53,30 +56,27 @@ export default function Leave(){
 
   return (
     <div className="container" style={{ paddingTop:24, paddingBottom:40 }}>
-      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:16 }}>
-        <div style={{ display:'flex', gap:12, alignItems:'center' }}>
-          <h2 style={{ margin:0 }}>Time Off</h2>
-          {isApprover && (
-            <div className="tabs">
-              <button className={`tab ${activeTab==='timeoff'?'active':''}`} onClick={()=> setActiveTab('timeoff')}>Time Off</button>
-              <button className={`tab ${activeTab==='allocation'?'active':''}`} onClick={()=> setActiveTab('allocation')}>Allocation</button>
-            </div>
-          )}
-        </div>
-        <div style={{ display:'flex', gap:8 }}>
-          <input value={search} onChange={e=> setSearch(e.target.value)} placeholder="Search" className="input" style={{ width:180 }} />
-          <button className="btn btn-primary btn-press" onClick={()=> setShowNew(true)}>+ NEW</button>
-        </div>
-      </div>
+      <PageHeader title="Time Off" subtitle="Balances, requests and approvals in one place." actions={<>
+        {isApprover && (
+          <div className="tabs">
+            <button className={`tab ${activeTab==='timeoff'?'active':''}`} onClick={()=> setActiveTab('timeoff')}>Time Off</button>
+            <button className={`tab ${activeTab==='allocation'?'active':''}`} onClick={()=> setActiveTab('allocation')}>Allocation</button>
+          </div>
+        )}
+        <input value={search} onChange={e=> setSearch(e.target.value)} placeholder="Search" className="input" style={{ width:180 }} />
+        <button className="btn btn-primary btn-press" onClick={()=> setShowNew(true)}>+ New request</button>
+      </>} />
 
       {/* balance chips */}
       <div style={{ display:'flex', gap:10, flexWrap:'wrap', marginBottom:16 }}>
-        {balances.map((b:any)=>(
-          <div key={b.id} className="chip" style={{ background:'white' }}>
-            <span style={{ fontWeight:700 }}>{b.name}</span> — {(Number(b.allocated)+Number(b.carried_forward)-Number(b.used)).toFixed(1)} days available
-            <span style={{ width:60, height:6, background:'var(--neutral-200)', borderRadius:999, overflow:'hidden', display:'inline-block', marginLeft:6 }}>
-              <span style={{ display:'block', height:'100%', width: `${Math.min(100, ((b.allocated - b.used)/b.allocated)*100)}%`, background:'var(--accent)' }} />
-            </span>
+        {balances.map((b:any, i:number)=>(
+          <div key={b.id} className="balance-chip fade-up" style={{ '--i': i } as any}>
+            <div style={{ display:'flex', justifyContent:'space-between', gap:12, fontSize:13 }}>
+              <span style={{ fontWeight:700 }}>{b.name}</span>
+              <span style={{ color:'var(--neutral-500)' }}>{Number(b.used).toFixed(0)} / {(Number(b.allocated)+Number(b.carried_forward)).toFixed(0)} used</span>
+            </div>
+            <div className="bar"><span style={{ width: `${Math.min(100, (Number(b.allocated)+Number(b.carried_forward))>0 ? (Number(b.used)/(Number(b.allocated)+Number(b.carried_forward)))*100 : 0)}%` }} /></div>
+            <div style={{ fontSize:12, color:'var(--neutral-500)' }}><b style={{ color:'var(--neutral-900)' }}>{(Number(b.allocated)+Number(b.carried_forward)-Number(b.used)).toFixed(1)}</b> days available</div>
           </div>
         ))}
         {balances.length===0 && <span style={{ fontSize:13, color:'var(--neutral-500)' }}>No balances yet</span>}
@@ -87,10 +87,10 @@ export default function Leave(){
           <table>
             <thead><tr><th>Name</th><th>Start Date</th><th>End Date</th><th>Type</th><th>Status</th>{isApprover && <th>Action</th>}</tr></thead>
             <tbody>
-              {filtered.length===0 ? <tr><td colSpan={6} style={{ textAlign:'center', padding:20, color:'var(--neutral-500)' }}>No requests</td></tr> :
+              {filtered.length===0 ? <tr><td colSpan={6}><EmptyState compact icon="sun" title="No time-off requests" hint="Requests you submit or need to approve will show up here." action={<button className="btn btn-primary btn-sm btn-press" onClick={()=> setShowNew(true)}>Request time off</button>} /></td></tr> :
               filtered.map((r:any)=>(
                 <tr key={r.id}>
-                  <td><div style={{ display:'flex', alignItems:'center', gap:8 }}><img src={`https://i.pravatar.cc/32?u=${r.employee_id}`} style={{ width:24, height:24, borderRadius:999 }} alt="" />{r.employeeName}</div></td>
+                  <td><div style={{ display:'flex', alignItems:'center', gap:8 }}><Avatar src={r.photo_url} name={r.employeeName} size={24} />{r.employeeName}</div></td>
                   <td>{r.start_date.slice(0,10)}</td>
                   <td>{r.end_date.slice(0,10)}</td>
                   <td><span className="badge badge-neutral">{r.leaveTypeName||r.code}</span></td>
@@ -142,7 +142,7 @@ export default function Leave(){
             <div className="card fade-up" style={{ '--i': 2 } as any}>
               <h4 style={{ margin:'0 0 8px' }}>Public Holidays</h4>
               {holidays.map((h:any)=> <div key={h.id} style={{ display:'flex', justifyContent:'space-between', padding:'6px 0', fontSize:13, borderBottom:'1px solid var(--neutral-100)' }}><span>{h.name}</span><span style={{ color:'var(--neutral-500)' }}>{h.date.slice(0,10)}</span></div>)}
-              {holidays.length===0 && <div style={{ fontSize:13, color:'var(--neutral-500)' }}>No holidays</div>}
+              {holidays.length===0 && <EmptyState compact icon="calendar" title="No holidays configured" />}
             </div>
           </div>
         )}

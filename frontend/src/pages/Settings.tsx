@@ -28,7 +28,7 @@ export default function Settings(){
   return (
     <div className="container" style={{ paddingTop:24, paddingBottom:40 }}>
       <PageHeader title="Organisation settings" subtitle="Work hours, holidays and leave policies for your company." />
-      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16 }}>
+      <div className="grid-2">
         <div className="card fade-up" style={{ '--i': 1 } as any}>
           <h3 style={{ marginTop:0 }}>General</h3>
           <div style={{ display:'flex', flexDirection:'column', gap:12 }}>

@@ -97,7 +97,7 @@ export default function Profile(){
       </div>
 
       {tab==='resume' && (
-        <div style={{ display:'grid', gridTemplateColumns:'2fr 1fr', gap:16, marginTop:16 }}>
+        <div className="grid-2-1" style={{ marginTop:16 }}>
           <div style={{ display:'flex', flexDirection:'column', gap:16 }}>
             {[
               { key:'about', title:'About', placeholder:'Tell us about yourself' },

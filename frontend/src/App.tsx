@@ -4,6 +4,7 @@ import { ToastProvider } from './components/Toast';
 import CustomCursor from './components/CustomCursor';
 import PageTransition from './components/PageTransition';
 import Header from './components/Header';
+import Footer from './components/Footer';
 import SignIn from './pages/SignIn';
 import SignUp from './pages/SignUp';
 import Directory from './pages/Directory';
@@ -50,9 +51,10 @@ function Layout({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
   useRipple();
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg)' }}>
+    <div className="app-shell">
       {user && <Header />}
       <PageTransition>{children}</PageTransition>
+      {user && <Footer />}
     </div>
   );
 }

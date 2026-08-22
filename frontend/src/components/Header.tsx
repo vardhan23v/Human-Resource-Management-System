@@ -66,7 +66,7 @@ export default function Header() {
             </div>
           )}
           <button className="icon-btn" aria-label="Notifications" onClick={()=> nav('/notifications')} style={{ position:'relative', background:'white', border:'1px solid var(--neutral-200)', width:36, height:36, borderRadius:999, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer' }}>
-            <span>🔔</span>{notifCount>0 && <span className={bump?'pop':''} style={{ position:'absolute', top:-2, right:-2, background:'var(--danger)', color:'white', fontSize:10, fontWeight:800, width:18, height:18, borderRadius:999, display:'flex', alignItems:'center', justifyContent:'center' }}>{notifCount}</span>}
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color:'var(--neutral-700)' }}><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>{notifCount>0 && <span className={bump?'pop':''} style={{ position:'absolute', top:-2, right:-2, background:'var(--danger)', color:'white', fontSize:10, fontWeight:800, width:18, height:18, borderRadius:999, display:'flex', alignItems:'center', justifyContent:'center' }}>{notifCount}</span>}
           </button>
           <div style={{ position:'relative' }}>
             <button onClick={()=> setShow(v=>!v)} style={{ display:'flex', alignItems:'center', gap:8, background:'transparent', border:'none', cursor:'pointer' }}>
