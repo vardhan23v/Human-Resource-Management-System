@@ -6,6 +6,7 @@ import fs from 'fs';
 import path from 'path';
 import { env } from '../../config/env';
 import { storage } from '../../utils/storage';
+import { sendMail } from '../../utils/mailer';
 import PDFDocument from 'pdfkit';
 
 export async function getSalaryStructure(actor:any, employeeId:string){
@@ -120,7 +121,11 @@ export async function runPayroll(actor:any, monthStr:string){ // monthStr YYYY-M
   for(const r of results){
     if(r.skipped) continue;
     const [uRows]:any=await pool.execute('SELECT user_id FROM employees WHERE id=?',[r.employeeId]);
-    if(uRows.length) await pool.execute('INSERT INTO notifications (id, user_id, company_id, type, title, payload) VALUES (?,?,?,?,?,?)',[uuid(), uRows[0].user_id, actor.companyId, 'PAYSLIP_PUBLISHED', 'Payslip published for '+monthStr, JSON.stringify({ month: monthStr })]);
+    if(uRows.length){
+      await pool.execute('INSERT INTO notifications (id, user_id, company_id, type, title, payload) VALUES (?,?,?,?,?,?)',[uuid(), uRows[0].user_id, actor.companyId, 'PAYSLIP_PUBLISHED', 'Payslip published for '+monthStr, JSON.stringify({ month: monthStr })]);
+      const [em]:any=await pool.execute('SELECT u.email, e.first_name FROM users u JOIN employees e ON e.user_id=u.id WHERE u.id=?',[uRows[0].user_id]);
+      if(em.length) sendMail(em[0].email, `Your payslip for ${monthStr} is ready`, `<p>Hi ${em[0].first_name||''},</p><p>Your payslip for <b>${monthStr}</b> has been published. Sign in to Dayflow → Payroll to download the PDF.</p><p><a href="${env.FRONTEND_URL}/payroll">Open Dayflow</a></p>`).catch(()=>{});
+    }
   }
   return { month: monthStr, count: results.length, results };
 }

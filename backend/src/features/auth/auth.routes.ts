@@ -103,4 +103,19 @@ router.post('/employees', authMiddleware, requireRole('ADMIN','HR'), async (req,
   } catch (e) { next(e); }
 });
 
+/** Bulk import: client parses CSV → JSON rows; each row is created independently so one bad row doesn't block the rest. */
+router.post('/employees/bulk', authMiddleware, requireRole('ADMIN','HR'), async (req, res, next) => {
+  try {
+    const rows: any[] = Array.isArray(req.body?.rows) ? req.body.rows.slice(0, 500) : [];
+    if (!rows.length) return res.status(400).json({ error: { code: 'VALIDATION_ERROR', message: 'rows[] is required (max 500)' } });
+    const results: any[] = [];
+    for (const [i, row] of rows.entries()) {
+      try { const r = await createEmployee((req as any).user, row); results.push({ row: i + 1, ok: true, loginId: r.loginId, email: row.email, tempPassword: r.tempPassword }); }
+      catch (e: any) { results.push({ row: i + 1, ok: false, email: row?.email, error: e?.message || 'Failed' }); }
+    }
+    await auditLog(req as any, 'BULK_IMPORT_EMPLOYEES', 'Employee', undefined, null, { total: rows.length, created: results.filter(r => r.ok).length });
+    res.status(201).json({ data: { results, created: results.filter(r => r.ok).length, failed: results.filter(r => !r.ok).length } });
+  } catch (e) { next(e); }
+});
+
 export default router;

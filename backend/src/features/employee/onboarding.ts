@@ -1,0 +1,63 @@
+import PDFDocument from 'pdfkit';
+import { pool } from '../../db/pool';
+import { ForbiddenError, NotFoundError } from '../../utils/errors';
+
+/** Self-service onboarding checklist, computed live from the employee row. */
+export async function getOnboarding(actor: any) {
+  if (!actor.employeeId) return { steps: [], progress: 100, complete: true };
+  const [rows]: any = await pool.execute(
+    `SELECT e.*, u.must_change_password, (SELECT COUNT(*) FROM employee_documents d WHERE d.employee_id=e.id) AS docs FROM employees e JOIN users u ON u.id=e.user_id WHERE e.id=?`, [actor.employeeId]);
+  if (!rows.length) throw new NotFoundError('Employee not found');
+  const e = rows[0];
+  const steps = [
+    { key: 'password', title: 'Set your own password', done: !e.must_change_password, hint: 'Replace the temporary password you were emailed.', href: 'security' },
+    { key: 'photo', title: 'Add a profile photo', done: !!e.photo_url, hint: 'Helps colleagues recognise you in the directory.', href: 'private' },
+    { key: 'contact', title: 'Add phone and address', done: !!(e.phone && e.address), hint: 'Used for payroll and emergencies.', href: 'private' },
+    { key: 'emergency', title: 'Emergency contact', done: !!e.emergency_contact, hint: 'Name and number of someone we can call.', href: 'private' },
+    { key: 'about', title: 'Tell the team about you', done: !!e.about, hint: 'A short intro for your profile.', href: 'resume' },
+    { key: 'documents', title: 'Upload an ID document', done: Number(e.docs) > 0, hint: 'PDF / JPG / PNG up to 5 MB.', href: 'resume' },
+    { key: 'policy', title: 'Accept the company policy', done: !!e.policy_accepted_at, hint: 'Acknowledge the employee handbook.', href: 'onboarding' },
+  ];
+  const doneCount = steps.filter(s => s.done).length;
+  const complete = doneCount === steps.length;
+  if (complete && !e.onboarding_completed_at) await pool.execute('UPDATE employees SET onboarding_completed_at=NOW() WHERE id=?', [e.id]);
+  return { steps, progress: Math.round((doneCount / steps.length) * 100), complete, completedAt: e.onboarding_completed_at, policyAcceptedAt: e.policy_accepted_at };
+}
+
+export async function acceptPolicy(actor: any) {
+  if (!actor.employeeId) throw new ForbiddenError('No employee record');
+  await pool.execute('UPDATE employees SET policy_accepted_at=COALESCE(policy_accepted_at, NOW()) WHERE id=?', [actor.employeeId]);
+  return getOnboarding(actor);
+}
+
+/** Offer / appointment letter PDF (ADMIN/HR). */
+export async function offerLetterPdf(actor: any, employeeId: string): Promise<{ pdf: Buffer; name: string }> {
+  if (!['ADMIN', 'HR'].includes(actor.role)) throw new ForbiddenError('Only Admin/HR can generate offer letters');
+  const [rows]: any = await pool.execute(
+    `SELECT e.*, d.name AS department, c.name AS companyName, u.login_id, u.email, s.monthly_wage, s.yearly_wage
+     FROM employees e JOIN users u ON u.id=e.user_id JOIN companies c ON c.id=e.company_id
+     LEFT JOIN departments d ON d.id=e.department_id
+     LEFT JOIN salary_structures s ON s.employee_id=e.id AND s.effective_from=(SELECT MAX(effective_from) FROM salary_structures WHERE employee_id=e.id)
+     WHERE e.id=? AND e.company_id=?`, [employeeId, actor.companyId]);
+  if (!rows.length) throw new NotFoundError('Employee not found');
+  const e = rows[0];
+  const fmt = (n: any) => n == null ? '—' : `₹${Number(n).toLocaleString('en-IN')}`;
+  const pdf: Buffer = await new Promise((resolve, reject) => {
+    const doc = new PDFDocument({ margin: 64 });
+    const chunks: Buffer[] = [];
+    doc.on('data', (c: Buffer) => chunks.push(c)); doc.on('end', () => resolve(Buffer.concat(chunks))); doc.on('error', reject);
+    doc.fontSize(22).text(e.companyName, { align: 'left' }).moveDown(0.2);
+    doc.fontSize(10).fillColor('#666').text(new Date().toDateString()).fillColor('#000').moveDown(1.5);
+    doc.fontSize(16).text('Letter of Appointment').moveDown();
+    doc.fontSize(11).text(`Dear ${e.first_name || e.name},`).moveDown();
+    doc.text(`We are pleased to confirm your appointment with ${e.companyName} as ${e.designation || 'Employee'}${e.department ? ` in the ${e.department} department` : ''}, effective ${String(e.date_of_joining).slice(0, 10)}.`, { lineGap: 3 }).moveDown();
+    doc.text('Your compensation will be:', { lineGap: 3 });
+    doc.text(`• Monthly gross: ${fmt(e.monthly_wage)}`); doc.text(`• Annual gross: ${fmt(e.yearly_wage)}`).moveDown();
+    doc.text(`Your employee Login ID is ${e.login_id}. Please complete your onboarding checklist in Dayflow within your first week.`, { lineGap: 3 }).moveDown();
+    doc.text('This appointment is subject to the company policies and the terms of employment shared with you. We look forward to working with you.', { lineGap: 3 }).moveDown(2);
+    doc.text('Sincerely,'); doc.moveDown(2); doc.text('Human Resources'); doc.text(e.companyName);
+    doc.moveDown(3).fontSize(9).fillColor('#888').text('Generated by Dayflow HRMS', { align: 'center' });
+    doc.end();
+  });
+  return { pdf, name: `offer-letter-${(e.name || 'employee').replace(/\s+/g, '-').toLowerCase()}.pdf` };
+}

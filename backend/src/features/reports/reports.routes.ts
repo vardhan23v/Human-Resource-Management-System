@@ -6,6 +6,32 @@ const router=Router();
 router.use(authMiddleware);
 router.use(requireRole('ADMIN','HR','MANAGER'));
 
+/** Manager "my team" view — direct reports for MANAGER, whole company for ADMIN/HR. */
+router.get('/team', async(req,res,next)=>{
+  try{
+    const u=(req as any).user; const today=new Date().toISOString().slice(0,10);
+    const scope = u.role==='MANAGER' ? 'AND e.manager_id=?' : '';
+    const params = u.role==='MANAGER' ? [today, today, u.companyId, u.employeeId] : [today, today, u.companyId];
+    const [members]:any=await pool.execute(
+      `SELECT e.id, e.name, e.designation, e.photo_url, d.name AS department,
+              a.status AS todayStatus, a.check_in AS checkIn, a.check_out AS checkOut, a.late_flag AS late,
+              (SELECT lt.name FROM leave_requests lr JOIN leave_types lt ON lt.id=lr.leave_type_id WHERE lr.employee_id=e.id AND lr.status='APPROVED' AND ? BETWEEN lr.start_date AND lr.end_date LIMIT 1) AS onLeave
+       FROM employees e LEFT JOIN departments d ON d.id=e.department_id
+       LEFT JOIN attendances a ON a.employee_id=e.id AND a.date=?
+       WHERE e.company_id=? AND e.lifecycle_state='ACTIVE' ${scope} ORDER BY e.name`, params);
+    const ids = members.map((m:any)=>m.id);
+    let pendingLeaves:any[]=[], pendingRegs:any[]=[];
+    if(ids.length){
+      const ph = ids.map(()=>'?').join(',');
+      [pendingLeaves]=await pool.execute(`SELECT lr.id, lr.start_date, lr.end_date, lr.days, lr.reason, e.name AS employeeName, lt.name AS type FROM leave_requests lr JOIN employees e ON e.id=lr.employee_id JOIN leave_types lt ON lt.id=lr.leave_type_id WHERE lr.status='PENDING' AND lr.employee_id IN (${ph}) ORDER BY lr.created_at`, ids) as any;
+      [pendingRegs]=await pool.execute(`SELECT r.id, r.date, r.reason, e.name AS employeeName FROM regularizations r JOIN employees e ON e.id=r.employee_id WHERE r.status='PENDING' AND r.employee_id IN (${ph}) ORDER BY r.created_at`, ids) as any;
+    }
+    const present = members.filter((m:any)=> ['PRESENT','HALF_DAY'].includes(m.todayStatus)).length;
+    const onLeave = members.filter((m:any)=> m.onLeave).length;
+    res.json({ data: { members, pendingLeaves, pendingRegs, summary: { total: members.length, present, onLeave, notIn: members.length-present-onLeave, late: members.filter((m:any)=>m.late).length } } });
+  }catch(e){next(e);}
+});
+
 router.get('/attendance-summary', async(req,res,next)=>{
   try{
     const companyId=(req as any).user.companyId;

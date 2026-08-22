@@ -4,12 +4,25 @@ import { authMiddleware, requireRole } from '../../middleware/auth';
 import { listEmployees, getEmployee, updateEmployee, uploadDocument, addSkill, addCertification, deleteSkill, deleteCertification, listDepartments, createDepartment } from './employee.service';
 import { auditLog } from '../../middleware/audit';
 import { storage, legacyKey } from '../../utils/storage';
+import { getOnboarding, acceptPolicy, offerLetterPdf } from './onboarding';
+import { requireRole as role } from '../../middleware/auth';
 
 const router = Router();
 // Files are buffered in memory (5 MB cap) and handed to the storage adapter (local disk or S3/R2).
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5*1024*1024 } });
 
 router.use(authMiddleware);
+
+// Onboarding (self-service) — declared before '/:id' so 'me' isn't captured as an id
+router.get('/me/onboarding', async (req, res, next) => { try { res.json({ data: await getOnboarding((req as any).user) }); } catch (e) { next(e); } });
+router.post('/me/onboarding/accept-policy', async (req, res, next) => { try { const r = await acceptPolicy((req as any).user); await auditLog(req as any, 'ACCEPT_POLICY', 'Employee', (req as any).user.employeeId); res.json({ data: r }); } catch (e) { next(e); } });
+router.get('/:id/offer-letter', role('ADMIN','HR'), async (req, res, next) => {
+  try {
+    const { pdf, name } = await offerLetterPdf((req as any).user, req.params.id);
+    await auditLog(req as any, 'GENERATE_OFFER_LETTER', 'Employee', req.params.id);
+    res.setHeader('Content-Type', 'application/pdf'); res.setHeader('Content-Disposition', `attachment; filename="${name}"`); res.send(pdf);
+  } catch (e) { next(e); }
+});
 
 // Directory / list
 router.get('/', async (req, res, next) => {
