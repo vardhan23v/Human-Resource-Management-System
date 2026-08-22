@@ -476,7 +476,18 @@ Motion is CSS-first and opt-out by default:
 
 ---
 
+## 👥 Team
+
+| | Role |
+|---|---|
+| **Sree Vardhan V** ([@vardhan23v](https://github.com/vardhan23v)) | Architecture, backend, deployment, LinkedIn integration |
+| **Srujan Pattar** | Frontend components & tests |
+| **Thirshul** | UX polish, documentation, e2e |
+
 ## 🤝 Contributing
+
+Full guide in [CONTRIBUTING.md](CONTRIBUTING.md) — setup, branch/PR flow, where things live, conventions.
+
 
 1. Branch from `main`; keep PRs focused (one feature or fix).
 2. Conventional commits: `feat:`, `fix:`, `docs:`, `chore:`, `refactor:`.
