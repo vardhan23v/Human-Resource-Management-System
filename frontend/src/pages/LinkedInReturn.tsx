@@ -6,6 +6,7 @@ import { AppLoader } from '../App';
 import { api } from '../utils/api';
 
 const HINTS: Record<string, string> = {
+  unauthorized_scope_error: 'The LinkedIn app is missing a product. In the Developer Portal → Products, add "Sign In with LinkedIn using OpenID Connect" (for openid/profile/email) and "Share on LinkedIn" (for w_member_social), wait until both show as Added, then try again.',
   LINKEDIN_DENIED: 'You cancelled on the LinkedIn consent screen. Click "Try again" and choose Allow.',
   LINKEDIN_INVALID_STATE: 'The sign-in link expired (10-minute limit) or was reused. Start again from the LinkedIn tab.',
   LINKEDIN_ALREADY_LINKED: 'That LinkedIn account is already connected to another Dayflow user. Disconnect it there first.',
@@ -22,7 +23,7 @@ export default function LinkedInReturn() {
   const toast = useToast();
   const { user, loading } = useAuth();
   const [retrying, setRetrying] = useState(false);
-  const status = q.get('status'); const code = q.get('code') || 'LINKEDIN_CALLBACK_FAILED'; const message = q.get('message') || '';
+  const status = q.get('status'); const code = q.get('code') || 'LINKEDIN_CALLBACK_FAILED'; const message = (q.get('message') || '').replace(/&quot;/g, '"').replace(/&amp;/g, '&').replace(/&#39;/g, "'");
 
   useEffect(() => {
     if (loading || status !== 'connected') return;
