@@ -209,10 +209,12 @@ Vercel has no database — create a MySQL 8 instance on any host (Aiven, Railway
 | `JWT_SECRET`, `JWT_REFRESH_SECRET` | two random 32+ char strings (`openssl rand -base64 32`) |
 | `CORS_ORIGIN` | `https://frontend-iota-two-70.vercel.app,http://localhost:5173` (comma-separated; `*.vercel.app` previews are auto-allowed when a `.vercel.app` origin is listed) |
 | `NODE_ENV` | `production` |
+| `AUTO_MIGRATE` | `true` — on the first request the API applies `migrations/*.sql` if the `users` table is missing (`backend/src/db/bootstrap.ts`) |
+| `AUTO_SEED` | `true` to also load the demo company/users on that first bootstrap (set to `false` for a real tenant) |
 
 Via CLI from `backend/`: `vercel env add DATABASE_URL production` (repeat per var), then `vercel --prod`.
 
-### 12.3 Migrate + seed the hosted DB (run locally, once)
+### 12.3 Migrate + seed the hosted DB manually (only if `AUTO_MIGRATE` is off)
 ```bash
 cd backend && DATABASE_URL='mysql://user:pass@host:3306/dayflow?ssl=true' npm run migrate
 cd backend && DATABASE_URL='mysql://user:pass@host:3306/dayflow?ssl=true' npm run seed
