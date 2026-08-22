@@ -61,7 +61,7 @@ export default function Directory(){
       {/* Systray */}
       <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:20, flexWrap:'wrap', gap:12 }}>
         <div style={{ display:'flex', alignItems:'center', gap:12 }}>
-          <div style={{ background:'white', border:'1px solid var(--neutral-200)', borderRadius:999, padding:'8px 14px', display:'flex', alignItems:'center', gap:10, boxShadow:'var(--shadow-sm)' }}>
+          <div style={{ background:'var(--card)', border:'1px solid var(--hairline)', borderRadius:999, padding:'8px 14px', display:'flex', alignItems:'center', gap:10, boxShadow:'var(--shadow-sm)' }}>
             <span style={{ width:8, height:8, borderRadius:999, background: checkStatus?.checkedIn && !checkStatus?.checkedOut ? 'var(--success)' : 'var(--danger)', display:'inline-block' }}></span>
             <span style={{ fontWeight:700, fontSize:13 }}>{checkStatus?.checkedIn && !checkStatus?.checkedOut ? `Checked in since ${formatSince()}` : checkStatus?.checkedOut ? 'Checked out today' : 'Not checked in'}</span>
             <button onClick={toggleCheck} className={`btn btn-primary btn-sm ${!checkStatus?.checkedOut && checkStatus?.checkedIn ? '' : 'checkin-pulse'}`} style={{ borderRadius:999, padding:'6px 14px', background: checkStatus?.checkedIn && !checkStatus?.checkedOut ? 'var(--neutral-900)' : 'var(--accent)' }}>
@@ -85,7 +85,7 @@ export default function Directory(){
       {loading ? (
         <div className="grid-cards">{Array.from({length:8}).map((_,i)=> <div key={i} className="card fade-up" style={{ '--i': 1, height:140 } as any}><div className="skeleton" style={{ height:48, width:48, borderRadius:999 }} /><div className="skeleton" style={{ height:14, marginTop:12 }} /><div className="skeleton" style={{ height:10, marginTop:8, width:'60%' }} /></div>)}</div>
       ) : employees.length===0 ? (
-        <div style={{ textAlign:'center', padding:60, background:'white', borderRadius:16, border:'1px dashed var(--neutral-200)' }}>
+        <div style={{ textAlign:'center', padding:60, background:'var(--card)', borderRadius:16, border:'1px dashed var(--neutral-200)' }}>
           <div style={{ fontSize:28, marginBottom:8 }}>🫥</div><div style={{ fontWeight:700 }}>No employees found</div><div style={{ color:'var(--neutral-500)', fontSize:13, marginTop:4 }}>Try adjusting search or add a new employee.</div>
         </div>
       ) : (

@@ -129,7 +129,7 @@ export default function Attendance(){
             <div style={{ display:'grid', gridTemplateColumns:'repeat(7, 1fr)', gap:6 }}>
               {['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map(d=> <div key={d} style={{ fontSize:11, fontWeight:700, color:'var(--neutral-500)', textAlign:'center' }}>{d}</div>)}
               {empRows.map((r:any, i:number)=>(
-                <div key={r.id} style={{ height:48, borderRadius:8, background: r.status==='PRESENT'?'var(--success-light)': r.status==='LEAVE'?'var(--warn-light)': r.status==='ABSENT'?'var(--neutral-100)':'white', border:'1px solid var(--neutral-200)', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', fontSize:12, animationDelay: `${i*20}ms` }} className="fade-up">
+                <div key={r.id} style={{ height:48, borderRadius:8, background: r.status==='PRESENT'?'var(--success-light)': r.status==='LEAVE'?'var(--warn-light)': r.status==='ABSENT'?'var(--neutral-100)':'white', border:'1px solid var(--hairline)', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', fontSize:12, animationDelay: `${i*20}ms` }} className="fade-up">
                   <span style={{ fontWeight:700 }}>{new Date(r.date).getDate()}</span><span style={{ fontSize:10, color:'var(--neutral-500)' }}>{r.worked_minutes? `${Math.floor(r.worked_minutes/60)}h`: r.status}</span>
                 </div>
               ))}

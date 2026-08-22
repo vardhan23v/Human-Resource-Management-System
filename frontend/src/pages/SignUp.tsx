@@ -29,7 +29,7 @@ export default function SignUp(){
         {err && <div className="fade-up" role="alert" style={{ background:'var(--danger-light)', color:'var(--danger)', padding:'10px 12px', borderRadius:8, fontSize:13, marginBottom:16 }}>{err}</div>}
         <form onSubmit={submit} style={{ display:'flex', flexDirection:'column', gap:12 }}>
           <div style={{ display:'flex', alignItems:'center', gap:16, padding:'12px', border:'1px dashed var(--neutral-200)', borderRadius:12, background:'var(--neutral-50)' }}>
-            <div style={{ width:56, height:56, borderRadius:12, background:'white', border:'1px solid var(--neutral-200)', display:'flex', alignItems:'center', justifyContent:'center', overflow:'hidden' }}>
+            <div style={{ width:56, height:56, borderRadius:12, background:'var(--card)', border:'1px solid var(--hairline)', display:'flex', alignItems:'center', justifyContent:'center', overflow:'hidden' }}>
               {logoPreview ? <img src={logoPreview} alt="logo" style={{ width:'100%', height:'100%', objectFit:'cover' }} /> : <span style={{ fontSize:20 }}>⬆</span>}
             </div>
             <div>

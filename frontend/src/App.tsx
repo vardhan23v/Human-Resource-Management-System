@@ -17,6 +17,8 @@ import Notifications from './pages/Notifications';
 import Dashboard from './pages/Dashboard';
 import LinkedInReturn from './pages/LinkedInReturn';
 import { useRipple } from './hooks/useRipple';
+import { useTheme } from './hooks/useTheme';
+import ThemeToggle from './components/ThemeToggle';
 
 export function AppLoader({ label = 'Loading your workspace…' }: { label?: string }) {
   return (
@@ -50,9 +52,11 @@ function NotFound() {
 function Layout({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
   useRipple();
+  useTheme();
   return (
     <div className="app-shell">
       {user && <Header />}
+      {!user && <div style={{ position: 'fixed', top: 16, right: 16, zIndex: 45 }}><ThemeToggle /></div>}
       <PageTransition>{children}</PageTransition>
       {user && <Footer />}
     </div>

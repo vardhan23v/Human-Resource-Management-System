@@ -119,7 +119,7 @@ export default function Leave(){
                   // filter requests by month
                   const monthReqs=requests.filter((r:any)=> new Date(r.start_date).getMonth()===m);
                   return (
-                    <div key={m} style={{ border:'1px solid var(--neutral-200)', borderRadius:10, padding:8, background:'white' }}>
+                    <div key={m} style={{ border:'1px solid var(--hairline)', borderRadius:10, padding:8, background:'var(--card)' }}>
                       <div style={{ fontWeight:700, fontSize:12, marginBottom:6 }}>{monthName}</div>
                       <div style={{ display:'grid', gridTemplateColumns:'repeat(7, 1fr)', gap:2 }}>
                         {Array.from({length:30}).map((_,d)=>{

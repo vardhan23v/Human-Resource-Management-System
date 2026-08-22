@@ -12,7 +12,7 @@ export default function AuthHero() {
       <div className="orb" style={{ width: 180, height: 180, background: '#F472B6', bottom: -40, right: 120, animationDelay: '-4s' }} />
 
       <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 10 }} className="fade-up">
-        <div style={{ width: 40, height: 40, borderRadius: 10, background: 'white', color: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 20, fontFamily: 'var(--font-display)' }}>D</div>
+        <div style={{ width: 40, height: 40, borderRadius: 10, background: 'var(--card)', color: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 20, fontFamily: 'var(--font-display)' }}>D</div>
         <span style={{ fontWeight: 800, fontSize: 20, fontFamily: 'var(--font-display)', letterSpacing: '-0.02em' }}>Dayflow</span>
       </div>
 

@@ -13,7 +13,7 @@ export default function Notifications(){
       <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
         {items.length===0 ? <div className="card"><EmptyState icon="bell" title="You're all caught up" hint="Leave decisions, payslips and security events will land here." /></div> :
         items.map((n:any, i:number)=>(
-          <div key={n.id} className="notif-item fade-up" style={{ '--i': i, background:'white', border:'1px solid', borderColor: n.is_read? 'var(--neutral-200)':'var(--accent)', borderRadius:12, padding:14, display:'flex', justifyContent:'space-between', opacity: n.is_read?0.7:1 } as any}>
+          <div key={n.id} className="notif-item fade-up" style={{ '--i': i, background:'var(--card)', border:'1px solid', borderColor: n.is_read? 'var(--neutral-200)':'var(--accent)', borderRadius:12, padding:14, display:'flex', justifyContent:'space-between', opacity: n.is_read?0.7:1 } as any}>
             <div>
               <div style={{ fontWeight:700, fontSize:13 }}>{n.title}</div>
               <div style={{ fontSize:12, color:'var(--neutral-500)', marginTop:4 }}>{n.type} • {new Date(n.created_at).toLocaleString()}</div>
