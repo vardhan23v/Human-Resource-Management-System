@@ -1,238 +1,420 @@
-# Dayflow — Human Resource Management System
+<div align="center">
 
 ![Dayflow — Every workday, perfectly aligned.](docs/banner.png)
 
+# Dayflow HRMS
 
-> **Every workday, perfectly aligned.**  
-> Web-based HRMS for onboarding, profiles, attendance, leave, payroll, approvals, and audit — with self-service, approval-driven writes, and least-privilege RBAC.
+**Every workday, perfectly aligned.**
 
-**Stack (per §6 constraints):** MySQL 8 (InnoDB, utf8mb4) · Node + TypeScript + Express only · React + TypeScript + Vite · Plain CSS/CSS Modules (design tokens, no UI kit) · `mysql2`, `bcryptjs`, `jsonwebtoken`, `nodemailer`, `pdfkit`, `dotenv` only.
+A production-grade Human Resource Management System — employee directory, attendance, time off, payroll with PDF payslips, approvals, notifications and audit — built as a TypeScript monorepo and deployed serverless on Vercel.
 
----
+[![Live demo](https://img.shields.io/badge/live-frontend--iota--two--70.vercel.app-5B5BF6?style=flat-square&logo=vercel&logoColor=white)](https://frontend-iota-two-70.vercel.app)
+[![API](https://img.shields.io/badge/api-dayflow--api.vercel.app-111827?style=flat-square&logo=vercel&logoColor=white)](https://dayflow-api.vercel.app/api/health)
+![Node](https://img.shields.io/badge/node-%E2%89%A520-339933?style=flat-square&logo=node.js&logoColor=white)
+![TypeScript](https://img.shields.io/badge/typescript-strict-3178C6?style=flat-square&logo=typescript&logoColor=white)
+![MySQL](https://img.shields.io/badge/mysql-8.x-4479A1?style=flat-square&logo=mysql&logoColor=white)
+![Tests](https://img.shields.io/badge/tests-14%20passing-0E9F6E?style=flat-square&logo=jest&logoColor=white)
+![Version](https://img.shields.io/badge/version-2.1.0-7C3AED?style=flat-square)
 
-## 1. Setup in ≤5 commands
+[Live demo](#-live-demo) · [Quick start](#-quick-start) · [Architecture](#-architecture) · [API](#-api-reference) · [Domain rules](#-domain-rules) · [Deployment](#-deployment) · [Runbook](#-operations-runbook) · [Contributing](#-contributing)
 
-```bash
-# 1 — clone / copy project and install
-npm install
-npm install --workspace=backend
-npm install --workspace=frontend
-
-# 2 — configure env (copy & edit if needed)
-cp backend/.env.example backend/.env
-
-# 3 — create DB + run migrations
-mysql -u root -e "CREATE DATABASE IF NOT EXISTS dayflow CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
-npm run migrate --workspace=backend
-
-# 4 — seed demo data (1 admin, 1 HR, 1 manager, 10 employees, 2 months attendance)
-npm run seed --workspace=backend
-
-# 5 — run (backend :4000, frontend :5173 with proxy)
-npm run dev
-# or separately:
-# npm run dev --workspace=backend   → http://localhost:4000/api/health
-# npm run dev --workspace=frontend  → http://localhost:5173
-```
-
-Build for prod:
-
-```bash
-npm run build --workspace=backend   # tsc → dist/
-npm run build --workspace=frontend  # vite → dist/
-node backend/dist/server.js
-npx vite preview --workspace=frontend --port 4173
-```
-
-Test (leave-balance & payroll math — the two bug magnets):
-
-```bash
-npm test --workspace=backend
-```
+</div>
 
 ---
 
-## 2. Env vars
+## ✨ Live demo
 
-| Var | Default | Description |
-|-----|---------|-------------|
-| `PORT` | `4000` | Backend port |
-| `NODE_ENV` | `development` | `development` uses jsonTransport for mail (logs to console) |
-| `DB_HOST` / `DB_PORT` / `DB_USER` / `DB_PASSWORD` / `DB_NAME` | `localhost:3306` / `root` / `dayflow` | MySQL connection |
-| `JWT_SECRET` | — | HMAC for access token (15m) — change in prod (32+ chars) |
-| `JWT_REFRESH_SECRET` | — | HMAC for refresh token (7d) |
-| `JWT_EXPIRES_IN` | `15m` | Access expiry |
-| `JWT_REFRESH_EXPIRES_IN` | `7d` | Refresh expiry |
-| `CORS_ORIGIN` | `http://localhost:5173` | Frontend origin |
-| `STORAGE_PATH` | `./storage` | Local disk for uploads & payslip PDFs |
-| `EMAIL_FROM` | `noreply@dayflow.local` | From address |
-
----
-
-## 3. Architecture sketch
-
-```
-┌─────────────────┐      httpOnly cookies / JWT (Bearer)       ┌─────────────────────┐
-│ React + Vite    │ ───────────────────────────────────────► │ Express + TS        │
-│ plain CSS       │ ◄─────────────────────────────────────── │  /api/auth          │──► MySQL 8 (InnoDB)
-│ tokens.css      │      JSON { data } / { error:{code}}     │  /api/employees     │    utf8mb4, DECIMAL(12,2),
-│ useApi(fetch)   │                                          │  /api/attendance    │    FK RESTRICT, (emp,date) unique,
-│ React Router    │                                          │  /api/leave         │    composite indexes, transactions
-└─────────────────┘                                          │  /api/payroll       │    JSON columns for components
-         ▲                                                   │  /api/reports      │
-         │ proxy /api + /storage                             │  /api/holidays etc  │
-         └───────────────────────────────────────────────────┘└─────────────────────┘
-```
-
-**Layering (backend):** `routes → middleware (auth, RBAC, rateLimit, audit) → controller (routes) → service (pure business rules) → repository (raw parameterized SQL in service, no ORM)`.  
-**Frontend layers:** `pages/*` (route) + `context/AuthContext` + `utils/api` (thin fetch wrapper) + hand-rolled components: Button, Card, Modal, Table, Toast, Skeleton.
-
----
-
-## 4. Roles & permissions (server-enforced, never trust client)
-
-| Capability | Employee | HR Officer | Admin | Manager* |
-|---|---|---|---:|---|
-| view own profile/attendance/leave/payslips | ✅ | ✅ | ✅ | ✅ |
-| view all employees | ❌ | ✅ | ✅ | reports only |
-| approve leave/regularization | ❌ | ✅ | ✅ | direct reports |
-| salary structures / payroll run | ❌ | ✅ if granted | ✅ | ❌ |
-| manage roles/settings/holidays/audit | ❌ | read audit | ✅ | ❌ |
-
-*Manager = `Employee.manager_id` self-reference; scoped via `manager_id == me`.
-
-All API routes use `authMiddleware` + `requireRole(...)` + record-level ownership checks (`employeeId == session.userId`).
-
----
-
-## 5. Key flows
-
-**Company signup → first Admin:** `POST /api/auth/signup` creates `Company` (initials feed loginId) + default departments, leave types (Paid 18, Sick 7…), org settings, holidays. Returns JWT. **Employees are not self-registered** — Admin/HR `POST /api/auth/employees` auto-generates Login ID `[CC][FFLL][YYYY][NNNN]` (e.g. `OIJODO20220001`), serial resets per year per company, atomic via `join_serials`, emails temp password, forces change.
-
-**Attendance:** `checkIn → checkout must follow; one open at a time; auto-close at day end; Half-day <4h, Present ≥8h (configurable), late-flag after grace, UTC storage + org timezone render, IP/device audit, CSV export, heat-map.
-
-**Leave engine:** Apply → `PENDING → APPROVED/REJECTED` (+ `CANCELLED`/`CANCELLATION_REQUESTED`). Balance computed live excluding weekends/holidays (configurable weekOffDays), overlap detection, Unpaid always allowed, multi-level toggle (`SINGLE`/`MULTI`), approval instantly syncs `attendances` LEAVE rows.
-
-**Payroll:** Effective-dated `salary_structures` (history preserved). Spec §3A.4: Basic 50% wage, HRA 50% Basic, Standard 4167, Bonus 8.33% Basic, LTA 8.33% Basic, Fixed = remainder; PF 12% Basic (both sides), PT ₹200, all configurable. Monthly run prorates gross by `payableDays/totalDays` (payable derives from attendance; unpaid/absent reduces it), generates `payslips` with `breakdown` JSON + PDF via `pdfkit`, idempotent, `finalized_at` lock.
-
-**Notifications & reports:** In-app + email (nodemailer jsonTransport in dev) for leave applied/decided, payslip published, security events; `reports/*` (attendance summary, leave utilization, headcount, late-arrivals, CSV exports, dashboard-stats).
-
----
-
-## 6. Data model (MySQL DDL — `backend/migrations/001_initial.sql`)
-
-Tables: `companies, departments, users, join_serials, employees, employee_documents, employee_skills, employee_certifications, attendances (unique employee_id,date), holidays, leave_types, leave_balances, leave_requests, regularizations, salary_structures (unique emp,effective_from), payslips (unique emp,month), notifications, audit_logs (append-only), org_settings, refresh_tokens, password_reset_tokens`. All money `DECIMAL(12,2)`, `DATETIME` UTC, FK `RESTRICT` (exits via lifecycle states, never hard-delete), indexes on every FK + `(employee_id, date)` & `(employee_id, month)`.
-
----
-
-## 7. API
-
-Base `http://localhost:4000/api`
-
-| Group | Examples |
-|-------|----------|
-| Auth | `POST /auth/signup` `POST /auth/login` `POST /auth/refresh` `POST /auth/forgot-password` `POST /auth/change-password` `GET /auth/me` `POST /auth/employees` |
-| Employees | `GET /employees?search=&page=` `GET /employees/:id` `PATCH /employees/:id` `POST /employees/:id/documents` `POST /employees/:id/skills` |
-| Attendance | `POST /attendance/check-in|check-out` `GET /attendance/today` `GET /attendance?date=…&month=…` `POST /attendance/regularizations` |
-| Leave | `GET /leave/types` `GET /leave/balances?year=` `POST /leave/requests` `POST /leave/requests/:id/decide` `GET /leave/calendar` |
-| Payroll | `POST /payroll/salary` `POST /payroll/run` `POST /payroll/finalize` `GET /payroll/payslips` `GET /payroll/payslips/:id/pdf` |
-| Other | `GET /holidays` `GET+PATCH /org-settings` `GET /notifications` `GET /reports/*` `GET /audit-logs` |
-
-Rate limit: in-memory (login 20/15m, auth 30/15m) — swap to MySQL/Redis for multi-instance.
-
----
-
-## 8. Dependency justification (§6 allow-list)
-
-| Package | Why allowed |
-|---------|-------------|
-| `express` | Sole backend framework (per spec) |
-| `mysql2` | Official MySQL driver |
-| `bcryptjs` | Password hashing (spec: bcrypt/argon2; pure-JS avoids native build) |
-| `jsonwebtoken` | JWT access+refresh (spec allows) |
-| `nodemailer` | Email (spec) — `jsonTransport` in dev, no extra provider |
-| `pdfkit` | Payslip PDF (one PDF lib allowed) |
-| `dotenv` | Env loading |
-| `cors`, `helmet`, `cookie-parser`, `multer`, `uuid` | Security & file upload essentials (minimal, documented) |
-| `react`, `react-dom`, `react-router-dom`, `vite` | Frontend core (one router dep allowed) |
-
-Validation, rate limiting, RBAC, pagination, audit logging, `useApi` — all in-house (no zod/joi, no TanStack Query).
-
-Charts: hand-rolled SVG bars/lines; animations: CSS-only (no lib), respects `prefers-reduced-motion`; tokens in `frontend/src/styles/tokens.css`; motion: 150–250ms ease-out/in, staggered cards, skeleton shimmer, check-in pulse.
-
----
-
-## 9. Demo credentials (after `npm run seed`)
-
-| Role | Email / Login ID | Password |
-|------|------------------|----------|
-| Admin | `admin@dayflow.local` / `OIARME20220001` | `Password123` |
-| HR | `hr@dayflow.local` / `OIPRSH20220002` | `Password123` |
-| Manager | `vikram.singh@dayflow.local` / `OIVISI20220003` | `Password123` |
-| Employee | `john.doe@dayflow.local` / `OIJODO20220004` | `Password123` |
-
-Login supports **Login ID or Email** + password.
-
----
-
-## 10. Security & quality
-
-- `helmet`, `cors` credentials, httpOnly cookies, parameterized SQL, input validation, output encoding, `AppError` hierarchy → consistent `{ error:{code,message} }`, no stack leak, audit log (actor, action, entity, before/after, IP, UA).
-- Paginated lists, indexed queries, P95 <300ms at 1k employees (target), daily backups via `mysqldump`, idempotent payroll (re-run safe + `finalized_at` lock).
-- TypeScript strict, no `any` (except DB rows), feature-folder layout, shared types, small pure functions, early returns, ESLint+Prettier (commit config pending).
-
----
-
-## 11. Out of scope (v2)
-
-Biometrics, tax filing, OKRs, ATS, native mobile, SAML/OIDC — noted as future.
-
----
-
-**Env:** Node 20+, MySQL 8.x (`utf8mb4`), macOS/Linux.  
-**Why MySQL:** Owner hard constraint; schema uses `DATETIME` UTC, `DECIMAL` for money, transactions for payroll & leave balance updates.
-
-## 12. Deployment (Vercel, two projects)
-
-The frontend and the API deploy as **two separate Vercel projects** from this monorepo. The API runs as a serverless function (`backend/api/index.ts` exports the Express app); the frontend is a static Vite build.
-
-| Project | Root directory | Production URL |
+| | URL | Notes |
 |---|---|---|
-| `frontend` | `frontend/` | https://frontend-iota-two-70.vercel.app |
-| `dayflow-api` | `backend/` | https://dayflow-api.vercel.app (see the Vercel dashboard for the exact alias) |
+| **App** | https://frontend-iota-two-70.vercel.app | React SPA, static build |
+| **API** | https://dayflow-api.vercel.app | Express on Vercel Functions — [`/api/health`](https://dayflow-api.vercel.app/api/health) reports the DB target |
 
-### 12.1 Hosted MySQL
-Vercel has no database — create a MySQL 8 instance on any host (Aiven, Railway, PlanetScale, TiDB Cloud, AWS RDS). Most require TLS: set `DB_SSL=true` (or pass `?ssl=true` in `DATABASE_URL`).
+Sign in with any demo account (Login ID **or** email + password):
 
-### 12.2 API env vars (`dayflow-api` project → Settings → Environment Variables)
-| Var | Value |
-|---|---|
-| `DATABASE_URL` | `mysql://user:pass@host:3306/dayflow?ssl=true` — **or** the discrete `DB_HOST/DB_PORT/DB_USER/DB_PASSWORD/DB_NAME` |
-| `DB_SSL` | `true` for hosted MySQL |
-| `JWT_SECRET`, `JWT_REFRESH_SECRET` | two random 32+ char strings (`openssl rand -base64 32`) |
-| `CORS_ORIGIN` | `https://frontend-iota-two-70.vercel.app,http://localhost:5173` (comma-separated; `*.vercel.app` previews are auto-allowed when a `.vercel.app` origin is listed) |
-| `NODE_ENV` | `production` |
-| `AUTO_MIGRATE` | `true` — on the first request the API applies `migrations/*.sql` if the `users` table is missing (`backend/src/db/bootstrap.ts`) |
-| `AUTO_SEED` | `true` to also load the demo company/users on that first bootstrap (set to `false` for a real tenant) |
+| Role | Email | Login ID | Password |
+|---|---|---|---|
+| Admin | `admin@dayflow.local` | `OIARME20220001` | `Password123` |
+| HR | `hr@dayflow.local` | `OIPRSH20220002` | `Password123` |
+| Manager | `vikram.singh@dayflow.local` | `OIVISI20220003` | `Password123` |
+| Employee | `john.doe@dayflow.local` | `OIJODO20220004` | `Password123` |
 
-Via CLI from `backend/`: `vercel env add DATABASE_URL production` (repeat per var), then `vercel --prod`.
+> The demo DB is shared and periodically reset. Uploaded files on the demo are ephemeral (see [Deployment caveats](#caveats-on-serverless)).
 
-### 12.3 Migrate + seed the hosted DB manually (only if `AUTO_MIGRATE` is off)
+---
+
+## 🧭 What's inside
+
+- **Employee directory** — search, departments, profiles with documents, skills and certifications; HR/Admin create employees (no self-registration) with auto-generated Login IDs and a forced first-login password change.
+- **Attendance** — check-in/out with grace periods and late flags, half-day/present thresholds, calendar and heat-map views, regularization requests with approval.
+- **Time off** — configurable leave types, live balances that exclude weekends/holidays, overlap detection, single- or multi-level approval, cancellation flow, approvals that sync straight into attendance.
+- **Payroll** — effective-dated salary structures, component rules (Basic/HRA/Standard/Bonus/LTA/Fixed, PF, PT), prorated monthly runs, idempotent re-runs, finalization lock, PDF payslips.
+- **Org admin** — work hours, week-off days, holidays, leave policies, departments.
+- **Cross-cutting** — in-app + email notifications, append-only audit log (actor, before/after, IP, UA), reports and CSV exports, role-scoped dashboard.
+- **UI** — hand-rolled design system (no UI kit), custom cursor, route transitions, staggered reveals, animated counters, toasts — all `prefers-reduced-motion` safe.
+
+---
+
+## 🚀 Quick start
+
+**Prerequisites:** Node ≥ 20, MySQL 8.x, npm 9+.
+
 ```bash
-cd backend && DATABASE_URL='mysql://user:pass@host:3306/dayflow?ssl=true' npm run migrate
-cd backend && DATABASE_URL='mysql://user:pass@host:3306/dayflow?ssl=true' npm run seed
+git clone https://github.com/vardhan23v/Human-Resource-Management-System.git
+cd Human-Resource-Management-System
+npm install                                   # installs both workspaces
+
+cp backend/.env.example backend/.env          # set DB_PASSWORD at minimum
+mysql -u root -p -e "CREATE DATABASE IF NOT EXISTS dayflow CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+
+npm run migrate                               # applies backend/migrations/*.sql
+npm run seed                                  # demo company: 1 admin, 1 HR, 1 manager, 10 employees, 2 months attendance
+npm run dev                                   # API :4000 + Vite :5173 (proxies /api and /storage)
 ```
 
-### 12.4 Frontend env var (`frontend` project)
-`VITE_API_URL=https://<your-api-domain>.vercel.app` (no trailing slash). It's baked in at build time, so **redeploy the frontend after changing it**: `cd frontend && vercel --prod`.
+Open http://localhost:5173 and sign in with a [demo account](#-live-demo).
 
-### 12.5 Caveats on serverless
-- **File storage is ephemeral.** Uploads and generated payslip PDFs are written to `/tmp` on the function instance and disappear on cold start. For persistent files, swap `multer.diskStorage` / `fs.createWriteStream` for an object store (S3/R2) — out of scope for v2.
-- The MySQL pool is capped at 5 connections on Vercel (`backend/src/db/pool.ts`) to avoid exhausting small hosted plans.
-- Access tokens expire in 15m; the frontend transparently refreshes once on a `401` (`frontend/src/utils/api.ts`).
+| Script (root) | What it does |
+|---|---|
+| `npm run dev` | Runs backend (`ts-node-dev`) and frontend (Vite) concurrently |
+| `npm run build` | `tsc` for the API → `backend/dist`, `tsc && vite build` for the SPA → `frontend/dist` |
+| `npm test` | Jest suites for the leave-balance and payroll engines |
+| `npm run migrate` / `npm run seed` | Schema + demo data against whatever `backend/.env` (or `DATABASE_URL`) points at |
 
-## 13. UI motion system (v2.1)
-- Custom cursor (dot + lagging ring, magnetic over interactive elements) — `frontend/src/components/CustomCursor.tsx`; fine-pointer only.
-- Route transitions, staggered card reveals (`.fade-up` + `--i`), scroll reveal (`useReveal`), animated stat counters, button ripple, toasts (`useToast`).
-- Everything honours `prefers-reduced-motion` — the kill switch in `frontend/src/styles/tokens.css` disables all animation/transition.
+---
 
+## 🏗 Architecture
+
+```mermaid
+flowchart LR
+  subgraph Client["Browser"]
+    SPA["React 18 + Vite<br/>React Router · AuthContext · fetch wrapper"]
+  end
+  subgraph Vercel["Vercel"]
+    FE["Static SPA<br/><code>frontend/</code>"]
+    API["Express on Vercel Functions<br/><code>backend/api/index.ts</code>"]
+  end
+  DB[("MySQL 8<br/>Railway / any host")]
+  Mail["SMTP / jsonTransport"]
+  SPA -- "HTTPS · Bearer JWT · JSON" --> API
+  FE -.serves.-> SPA
+  API -- "mysql2 pool · parameterized SQL · transactions" --> DB
+  API -. "nodemailer" .-> Mail
+```
+
+**Backend layering:** `routes → middleware (auth · RBAC · rate-limit · audit) → service (business rules, SQL) → MySQL`. No ORM — every query is hand-written, parameterized and lives next to the feature it serves.
+
+**Frontend:** pages per route, a single `AuthContext`, a 40-line `api()` fetch wrapper with single-flight refresh-token retry, and a small component kit (`Toast`, `Skeleton`, `PageHeader`, `AnimatedNumber`, `CustomCursor`, `PageTransition`). Styling is plain CSS on design tokens — no Tailwind, no component library.
+
+### Repository layout
+
+```
+.
+├── backend/
+│   ├── api/index.ts            # Vercel entry — exports the Express app
+│   ├── migrations/001_initial.sql
+│   ├── src/
+│   │   ├── app.ts              # middleware, routes, error handler
+│   │   ├── server.ts           # local long-running server (app.listen)
+│   │   ├── config/env.ts       # env parsing (DATABASE_URL or DB_*), serverless defaults
+│   │   ├── db/                 # pool, migrate, seed, serverless bootstrap
+│   │   ├── middleware/         # auth (JWT), rateLimit, audit, errorHandler
+│   │   ├── features/<name>/    # <name>.routes.ts + <name>.service.ts
+│   │   ├── utils/              # errors, validators, helpers, json, mailer
+│   │   └── __tests__/          # leave.test.ts, payroll.test.ts
+│   └── vercel.json
+├── frontend/
+│   ├── src/
+│   │   ├── pages/              # SignIn, SignUp, Directory, Profile, Attendance, Leave, Payroll, Settings, Notifications, Dashboard
+│   │   ├── components/         # Header, Toast, CustomCursor, PageTransition, AuthHero, …
+│   │   ├── hooks/              # useReveal, useRipple
+│   │   ├── context/AuthContext.tsx
+│   │   ├── utils/api.ts
+│   │   └── styles/             # tokens.css (design tokens + motion), global.css
+│   └── vercel.json             # SPA rewrite
+├── docs/banner.png
+└── package.json                # npm workspaces
+```
+
+### Design decisions
+
+| Decision | Why |
+|---|---|
+| Raw SQL via `mysql2`, no ORM | Payroll and leave maths need explicit transactions and predictable queries; the schema is small enough that an ORM adds more than it removes. |
+| JWT access (15 m) + rotating refresh (7 d) in `localStorage`, refresh tokens persisted server-side | Stateless API that still supports logout-everywhere; the SPA retries once on `401` via a single-flight refresh. |
+| Login ID generated server-side, `[CC][FFLL][YYYY][NNNN]` | Human-readable, unique per company/year, allocated atomically through a `join_serials` counter row. |
+| Soft lifecycle states, `FOREIGN KEY … RESTRICT` | HR data is never hard-deleted — audits and payslips must stay referentially intact. |
+| Effective-dated `salary_structures`, `payslips` unique per (employee, month) | Salary history is preserved; payroll runs are idempotent and lockable with `finalized_at`. |
+| Serverless bootstrap (`AUTO_MIGRATE`) | A fresh deployment becomes usable on its first request without a shell into the DB host. |
+| CSS-only motion, `prefers-reduced-motion` kill switch | Zero animation dependencies; one media query disables everything for users who need it. |
+
+---
+
+## ⚙️ Configuration
+
+All variables are read in [`backend/src/config/env.ts`](backend/src/config/env.ts); every one has a sane local default.
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `DATABASE_URL` | — | `mysql://user:pass@host:3306/db[?ssl=true]`. Overrides the `DB_*` set below when present. |
+| `DB_HOST` `DB_PORT` `DB_USER` `DB_PASSWORD` `DB_NAME` | `localhost` `3306` `root` `""` `dayflow` | Discrete connection settings |
+| `DB_SSL` | `false` | `true` for hosts that require TLS (Aiven, PlanetScale, TiDB). Railway's TCP proxy does **not**. |
+| `JWT_SECRET` / `JWT_REFRESH_SECRET` | dev placeholders | **Must** be set in production — 32+ random chars each |
+| `JWT_EXPIRES_IN` / `JWT_REFRESH_EXPIRES_IN` | `15m` / `7d` | Token lifetimes |
+| `CORS_ORIGIN` | `http://localhost:5173` | Comma-separated allow-list. If any entry ends in `.vercel.app`, Vercel preview URLs are also allowed. |
+| `STORAGE_PATH` | `./storage` (`/tmp/dayflow-storage` on Vercel) | Uploads and payslip PDFs |
+| `AUTO_MIGRATE` | `false` | Apply `migrations/*.sql` on the first request if the schema is missing |
+| `AUTO_SEED` | `false` | Also load the demo company during that bootstrap |
+| `NODE_ENV` | `development` | `development` routes email to `jsonTransport` (logged, not sent) |
+| `EMAIL_FROM` | `noreply@dayflow.local` | Sender address |
+| `PORT` | `4000` | Local server only |
+
+Frontend: `VITE_API_URL` (build-time, no trailing slash). Unset → same-origin, which the Vite dev proxy handles.
+
+---
+
+## 📡 API reference
+
+Base URL: `/api`. Every route except `auth/signup|login|refresh|forgot-password|reset-password` and `health` requires `Authorization: Bearer <accessToken>`. Responses are `{ data }` or `{ error: { code, message, details? } }`.
+
+<details>
+<summary><b>Auth</b> — <code>/api/auth</code></summary>
+
+| Method | Path | Role | Notes |
+|---|---|---|---|
+| POST | `/signup` | public | Creates company + first Admin, default departments/leave types/settings |
+| POST | `/login` | public | `identifier` = Login ID or email |
+| POST | `/refresh` | public | Rotates refresh token |
+| POST | `/logout` | any | Revokes refresh token |
+| GET | `/me` | any | Current user + employee/company context |
+| POST | `/change-password` | any | Clears `must_change_password` |
+| POST | `/forgot-password` · `/reset-password` | public | Token-based reset (token echoed in dev) |
+| POST | `/employees` | ADMIN, HR | Creates user + employee, generates Login ID and temp password |
+</details>
+
+<details>
+<summary><b>Employees</b> — <code>/api/employees</code></summary>
+
+| Method | Path | Role | Notes |
+|---|---|---|---|
+| GET | `/` | any (scoped) | `?search=&department=&page=&limit=` — employees see self, managers see reports, HR/Admin see all |
+| GET | `/:id` · PATCH `/:id` | owner / HR / Admin | Field-level permissions enforced server-side |
+| POST | `/:id/documents` | owner / HR / Admin | `multipart/form-data`, 5 MB cap |
+| GET | `/:id/documents/:docId/download` | owner / HR / Admin | |
+| POST / DELETE | `/:id/skills[/:skillId]` · `/:id/certifications[/:certId]` | owner / HR / Admin | |
+| GET | `/departments/list` · POST `/departments` | any · ADMIN | |
+</details>
+
+<details>
+<summary><b>Attendance</b> — <code>/api/attendance</code></summary>
+
+| Method | Path | Role | Notes |
+|---|---|---|---|
+| POST | `/check-in` · `/check-out` | any | One open session at a time; IP + UA recorded |
+| GET | `/today` | any | Current state for the check-in widget |
+| GET | `/` | scoped | `?date=` or `?month=` |
+| GET | `/calendar` | scoped | Month grid / heat-map data |
+| POST | `/regularizations` | any | Request a correction |
+| GET | `/regularizations/list` | scoped | |
+| POST | `/regularizations/:id/decide` | ADMIN, HR, MANAGER | `action: APPROVED \| REJECTED` |
+</details>
+
+<details>
+<summary><b>Leave</b> — <code>/api/leave</code></summary>
+
+| Method | Path | Role | Notes |
+|---|---|---|---|
+| GET | `/types` · POST `/types` · PATCH `/types/:id` | any · ADMIN · ADMIN | |
+| GET | `/balances` | scoped | `?year=` — computed live |
+| GET | `/requests` · POST `/requests` | scoped · any | Overlap + balance validated |
+| POST | `/requests/:id/cancel` | owner | Pending → cancelled; approved → cancellation requested |
+| POST | `/requests/:id/decide` | ADMIN, HR, MANAGER | Approval writes `LEAVE` rows into attendance |
+| GET | `/calendar` | scoped | Team leave calendar |
+</details>
+
+<details>
+<summary><b>Payroll</b> — <code>/api/payroll</code></summary>
+
+| Method | Path | Role | Notes |
+|---|---|---|---|
+| POST | `/salary` | ADMIN, HR | Upsert effective-dated structure |
+| GET | `/salary/:employeeId` | owner / HR / Admin | |
+| GET | `/salary-structures/list` | ADMIN, HR | |
+| POST | `/run` | ADMIN, HR | `{ month: 'YYYY-MM' }` — idempotent |
+| POST | `/finalize` | ADMIN | Locks the month |
+| GET | `/payslips` · `/payslips/:id` · `/payslips/:id/pdf` | scoped | PDF rendered with `pdfkit` |
+</details>
+
+<details>
+<summary><b>Org, reports, notifications, audit, holidays</b></summary>
+
+| Method | Path | Role |
+|---|---|---|
+| GET / PATCH | `/api/org-settings` | ADMIN |
+| GET | `/api/holidays` · POST `/api/holidays` · DELETE `/api/holidays/:id` | any · ADMIN · ADMIN |
+| GET | `/api/reports/dashboard-stats` · `/attendance-summary` · `/leave-utilization` · `/headcount` · `/late-arrivals` · `/export/attendance` | ADMIN, HR (manager-scoped where applicable) |
+| GET | `/api/notifications` · POST `/:id/read` · POST `/read-all` | any |
+| GET | `/api/audit-logs` | ADMIN (HR read) |
+| GET | `/api/health` | public — `{ status, version, db: { host, port, name, ssl, fromUrl, serverless } }` |
+</details>
+
+**Error codes:** `VALIDATION_ERROR` 400 · `UNAUTHORIZED` 401 · `FORBIDDEN` 403 · `NOT_FOUND` 404 · `CONFLICT` 409 · `RATE_LIMITED` 429 · `DATABASE_UNAVAILABLE` 503 (includes the driver code, e.g. `ECONNREFUSED`) · `INTERNAL_ERROR` 500.
+Rate limits are in-memory (login 20 / 15 min, auth 30 / 15 min) — move to Redis before scaling past one instance.
+
+---
+
+## 📐 Domain rules
+
+### Roles
+
+| Capability | Employee | Manager | HR | Admin |
+|---|:--:|:--:|:--:|:--:|
+| Own profile, attendance, leave, payslips | ✅ | ✅ | ✅ | ✅ |
+| View all employees | — | direct reports | ✅ | ✅ |
+| Approve leave / regularizations | — | direct reports | ✅ | ✅ |
+| Create employees, salary structures, run payroll | — | — | ✅ | ✅ |
+| Finalize payroll, org settings, holidays, leave types, departments | — | — | — | ✅ |
+| Audit log | — | — | read | ✅ |
+
+Manager scope is derived from `employees.manager_id`. Every route layers `authMiddleware` → `requireRole(...)` → record-level ownership checks; the client is never trusted.
+
+### Attendance
+- A day is **Present** at ≥ 8 h, **Half-day** at < 4 h (both configurable in org settings); arrivals after the grace period are flagged late.
+- Timestamps are stored in UTC and rendered in the company timezone.
+- Approved leave writes `LEAVE` attendance rows so payroll never double-counts.
+
+### Leave
+- Balances are computed on read: `allocation − approved days in year`, excluding week-off days and company holidays.
+- Unpaid leave is always allowed; paid types reject when the balance is insufficient or dates overlap an existing request.
+- `PENDING → APPROVED | REJECTED`, plus `CANCELLED` / `CANCELLATION_REQUESTED` for post-approval changes. Approval mode is `SINGLE` or `MULTI` per company.
+
+### Payroll
+- Default structure: Basic = 50 % of wage · HRA = 50 % of Basic · Standard = ₹4 167 · Bonus = 8.33 % of Basic · LTA = 8.33 % of Basic · Fixed = remainder. Deductions: PF 12 % of Basic (employee + employer), Professional Tax ₹200. All rates are configurable.
+- Monthly run prorates gross by `payableDays / totalWorkingDays`, where payable days come from attendance (absent and unpaid leave reduce them).
+- Re-running a month overwrites unfinalized payslips; `finalize` sets `finalized_at` and blocks further runs and attendance edits without Admin override.
+
+### Login IDs
+`[CC][FFLL][YYYY][NNNN]` → company initials · first two letters of first and last name · join year · per-company, per-year serial (`OIJODO20220004`). Allocated inside a transaction against `join_serials`.
+
+---
+
+## 🗄 Data model
+
+Schema lives in [`backend/migrations/001_initial.sql`](backend/migrations/001_initial.sql) (MySQL 8, InnoDB, `utf8mb4`).
+
+`companies` · `departments` · `users` · `join_serials` · `employees` · `employee_documents` · `employee_skills` · `employee_certifications` · `attendances` *(unique employee_id, date)* · `holidays` · `leave_types` · `leave_balances` · `leave_requests` · `regularizations` · `salary_structures` *(unique employee_id, effective_from)* · `payslips` *(unique employee_id, month)* · `notifications` · `audit_logs` *(append-only)* · `org_settings` · `refresh_tokens` · `password_reset_tokens`
+
+Conventions: money is `DECIMAL(12,2)`; dates/times are UTC `DATETIME`; JSON columns for payslip breakdowns and audit before/after snapshots (`parseJsonColumn` handles driver differences); every FK is indexed and `RESTRICT`ed.
+
+---
+
+## ☁️ Deployment
+
+The monorepo deploys as **two Vercel projects**; MySQL is hosted anywhere reachable over TCP.
+
+| Project | Root | Build | Production |
+|---|---|---|---|
+| `frontend` | `frontend/` | `tsc && vite build` → static | https://frontend-iota-two-70.vercel.app |
+| `dayflow-api` | `backend/` | `@vercel/node` bundles `api/index.ts` | https://dayflow-api.vercel.app |
+
+### First-time setup
+
+```bash
+# 1. Database — any MySQL 8 (Railway, Aiven, PlanetScale, TiDB Cloud, RDS). Copy its mysql:// URL.
+
+# 2. API project
+cd backend
+vercel link --project dayflow-api
+printf '%s' 'mysql://user:pass@host:port/db' | vercel env add DATABASE_URL production   # pipe → no interactive prompt
+openssl rand -base64 48 | vercel env add JWT_SECRET production
+openssl rand -base64 48 | vercel env add JWT_REFRESH_SECRET production
+printf 'https://<frontend-domain>,http://localhost:5173' | vercel env add CORS_ORIGIN production
+printf 'production' | vercel env add NODE_ENV production
+printf 'true' | vercel env add AUTO_MIGRATE production
+printf 'true' | vercel env add AUTO_SEED production          # omit for a real tenant
+vercel --prod
+
+# 3. Frontend project
+cd ../frontend
+vercel link --project frontend
+printf 'https://<api-domain>' | vercel env add VITE_API_URL production
+vercel --prod                                                # VITE_* is baked in at build time — redeploy after changing it
+```
+
+The first request to the API creates the schema (and seeds, if enabled). Check `GET /api/health` — `db.host` should be your MySQL host, not `localhost`.
+
+### Caveats on serverless
+- **Files are ephemeral.** Uploads and payslip PDFs land in `/tmp` on the function instance and vanish on cold start. Swap `multer.diskStorage` and `fs.createWriteStream` for S3/R2 before relying on them.
+- The MySQL pool is capped at **5 connections** on Vercel so a burst of cold starts can't exhaust a small hosted plan.
+- Rate limiting is per-instance memory; use Redis for real enforcement.
+- `server.ts` (long-running) and `api/index.ts` (serverless) share the same `app` — run `node backend/dist/server.js` behind a reverse proxy if you'd rather deploy to a VM or container.
+
+---
+
+## 🛠 Operations runbook
+
+| Symptom | Likely cause | Fix |
+|---|---|---|
+| `DATABASE_UNAVAILABLE (ECONNREFUSED)` from the API | `DATABASE_URL` empty/invalid — API fell back to `localhost` | `vercel env rm DATABASE_URL production --yes`, re-add by **piping** the value (the interactive prompt can store an empty string), redeploy |
+| `DATABASE_UNAVAILABLE (HANDSHAKE_NO_SSL_SUPPORT)` | `DB_SSL=true` against a non-TLS proxy (e.g. Railway) | Remove `DB_SSL` / `?ssl=true` |
+| `DATABASE_UNAVAILABLE (ER_ACCESS_DENIED_ERROR)` locally | `DB_PASSWORD` missing from `backend/.env` | Set it (the file is git-ignored) |
+| Sign-in works on the API but the SPA says "Cannot reach the server" | `VITE_API_URL` unset or changed without a rebuild | Set it, then `vercel --prod` in `frontend/` |
+| CORS error in the browser | Frontend origin not in `CORS_ORIGIN` | Add it (comma-separated), redeploy the API |
+| Tables missing after deploy | `AUTO_MIGRATE` not `true` | Set it, or run `DATABASE_URL=… npm run migrate` locally |
+| Demo data on a real tenant | `AUTO_SEED=true` left on | Set to `false`; drop the seeded company |
+
+Rotate a leaked DB password: regenerate it at the host → `vercel env rm DATABASE_URL production --yes` → re-add → `vercel --prod`.
+
+---
+
+## 🧪 Testing & quality
+
+```bash
+npm test                              # Jest: leave balance engine + payroll maths (14 tests)
+npx tsc --noEmit -p backend           # strict type-check, API
+npx tsc --noEmit -p frontend          # strict type-check, SPA
+```
+
+- TypeScript `strict` everywhere; `any` is tolerated only on raw DB rows.
+- Tests target the two places where money or entitlement can silently go wrong: proration/rounding in payroll and weekend/holiday exclusion in leave balances.
+- Security baseline: `helmet`, strict CORS allow-list, bcrypt password hashes, parameterized SQL only, rotating refresh tokens stored server-side, per-route RBAC plus ownership checks, consistent error envelope with no stack leakage, append-only audit trail.
+
+---
+
+## 🎨 Front-end design system
+
+Tokens in [`frontend/src/styles/tokens.css`](frontend/src/styles/tokens.css) — colour (`--accent: #5B5BF6`, semantic success/warn/danger), radii, shadows, spacing, type (`Plus Jakarta Sans` display, `Inter` UI).
+
+Motion is CSS-first and opt-out by default:
+
+| Piece | Where |
+|---|---|
+| Custom cursor — dot + lagging ring, grows over interactive elements, becomes a caret over inputs; fine-pointer devices only | `components/CustomCursor.tsx` |
+| Route transitions (fade + rise), scroll-to-top | `components/PageTransition.tsx` |
+| Staggered reveals via `--i` custom property, scroll reveal with `IntersectionObserver` + `MutationObserver` for late-mounted content | `tokens.css`, `hooks/useReveal.ts` |
+| Animated counters and bar growth on the dashboard | `components/AnimatedNumber.tsx`, `.bar-grow` |
+| Button ripple (one document-level listener) and press states | `hooks/useRipple.ts` |
+| Toast stack with progress bar | `components/Toast.tsx` (`useToast()`) |
+
+`@media (prefers-reduced-motion: reduce)` disables every animation and transition in one rule.
+
+---
+
+## 🤝 Contributing
+
+1. Branch from `main`; keep PRs focused (one feature or fix).
+2. Conventional commits: `feat:`, `fix:`, `docs:`, `chore:`, `refactor:`.
+3. New backend behaviour goes in `features/<name>/<name>.service.ts` with the route as a thin adapter; add a test if money, dates or permissions are involved.
+4. `npm run build && npm test` must pass. Type errors are CI failures, not warnings.
+5. Never commit `.env`, `.env.local`, or anything under `storage/`.
+
+### Roadmap
+- Object storage (S3/R2) for documents and payslips
+- Redis-backed rate limiting and refresh-token cache
+- Manager dashboards with team analytics
+- SSO (SAML/OIDC), biometric integrations, tax filing — explicitly out of scope for v2
+
+---
+
+## 📄 License
+
+No license file has been added yet — all rights reserved by default. Dayflow is a portfolio-grade reference implementation; review security and compliance requirements before using it with real employee data.
