@@ -5,6 +5,7 @@ import cookieParser from 'cookie-parser';
 import path from 'path';
 import { env } from './config/env';
 import { errorHandler } from './middleware/errorHandler';
+import { ensureSchema } from './db/bootstrap';
 
 import authRoutes from './features/auth/auth.routes';
 import employeeRoutes from './features/employee/employee.routes';
@@ -51,6 +52,11 @@ app.use((req,_res,next)=>{
 
 // static storage
 app.use('/storage', express.static(path.resolve(env.STORAGE_PATH)));
+
+// optional auto-migrate on first request (serverless bootstrap)
+if ((process.env.AUTO_MIGRATE || '').toLowerCase() === 'true') {
+  app.use('/api', (req, _res, next) => { if (req.path === '/health') return next(); ensureSchema().then(() => next(), next); });
+}
 
 // root landing + health
 app.get('/', (_req,res)=> res.json({ name:'Dayflow HRMS API', version:'2.1.0', health:'/api/health', docs:'https://github.com/vardhan23v/Human-Resource-Management-System' }));

@@ -4,7 +4,7 @@ import { v4 as uuid } from 'uuid';
 import { buildLoginId, generatePassword } from '../utils/helpers';
 import fs from 'fs';
 
-async function seed() {
+export async function runSeed() {
   console.log('Seeding Dayflow demo data...');
   const conn = await pool.getConnection();
   try {
@@ -184,7 +184,8 @@ async function seed() {
     throw e;
   } finally {
     conn.release();
-    process.exit(0);
   }
 }
-seed();
+if (require.main === module) {
+  runSeed().then(() => process.exit(0)).catch(() => process.exit(1));
+}
