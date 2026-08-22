@@ -129,6 +129,21 @@ function publicProfile(r: any) {
   };
 }
 
+/** Admin diagnostic: probes LinkedIn's token endpoint with client credentials. A wrong secret yields `invalid_client`. */
+export async function checkCredentials() {
+  if (!isConfigured()) return { ok: false, reason: 'not_configured' };
+  try {
+    const res = await http(TOKEN_URL, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({ grant_type: 'client_credentials', client_id: env.LINKEDIN_CLIENT_ID, client_secret: env.LINKEDIN_CLIENT_SECRET }) });
+    const body: any = await res.json().catch(() => ({}));
+    if (res.ok) return { ok: true, reason: 'client_credentials_accepted' };
+    const err = String(body?.error || '');
+    // unauthorized_client / access_denied = credentials fine but 2-legged flow not enabled (normal). invalid_client = bad id/secret.
+    if (err === 'invalid_client') return { ok: false, reason: 'invalid_client', detail: body?.error_description };
+    return { ok: true, reason: err || `http_${res.status}`, detail: body?.error_description };
+  } catch (e: any) { return { ok: false, reason: e?.code || 'network' }; }
+}
+
 export async function getStatus(userId: string) {
   const r = await getRow(userId);
   return { configured: isConfigured(), connected: !!r, profile: publicProfile(r) };

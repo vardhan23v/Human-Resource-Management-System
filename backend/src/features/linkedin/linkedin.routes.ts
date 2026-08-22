@@ -2,7 +2,8 @@ import { Router } from 'express';
 import { authMiddleware } from '../../middleware/auth';
 import { auditLog } from '../../middleware/audit';
 import { env } from '../../config/env';
-import { buildAuthorizationUrl, verifyState, completeConnection, getStatus, disconnect, createPost, isConfigured } from './linkedin.service';
+import { buildAuthorizationUrl, verifyState, completeConnection, getStatus, disconnect, createPost, isConfigured, checkCredentials } from './linkedin.service';
+import { requireRole } from '../../middleware/auth';
 
 const router = Router();
 
@@ -32,6 +33,11 @@ router.use(authMiddleware);
 
 router.get('/status', async (req, res, next) => {
   try { res.json({ data: await getStatus(req.user!.id) }); } catch (e) { next(e); }
+});
+
+/** Admin-only: verifies the configured client id/secret against LinkedIn and echoes the redirect URI in use. */
+router.get('/diagnostics', requireRole('ADMIN'), async (_req, res, next) => {
+  try { res.json({ data: { redirectUri: env.LINKEDIN_REDIRECT_URI, frontendUrl: env.FRONTEND_URL, clientIdSuffix: env.LINKEDIN_CLIENT_ID.slice(-4), apiVersion: env.LINKEDIN_API_VERSION, credentials: await checkCredentials() } }); } catch (e) { next(e); }
 });
 
 router.get('/connect', (req, res, next) => {
