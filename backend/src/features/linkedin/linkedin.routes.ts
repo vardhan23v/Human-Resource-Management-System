@@ -20,7 +20,8 @@ router.get('/callback', async (req, res) => {
     userId = verifyState(state);
     if (error) return back(res, userId, { status: 'error', code: error === 'user_cancelled_authorize' || error === 'user_cancelled_login' ? 'LINKEDIN_DENIED' : error, message: error_description || 'LinkedIn authorization was not completed.' });
     if (!code) return back(res, userId, { status: 'error', code: 'LINKEDIN_NO_CODE', message: 'LinkedIn did not return an authorization code.' });
-    await completeConnection(userId, code);
+    const { companyId } = await completeConnection(userId, code);
+    (req as any).user = { id: userId, companyId }; // public route: attach actor so the audit entry is attributed
     await auditLog(req, 'LINKEDIN_CONNECT', 'linkedin_accounts', userId);
     return back(res, userId, { status: 'connected' });
   } catch (e: any) {

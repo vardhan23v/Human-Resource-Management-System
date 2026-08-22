@@ -104,7 +104,7 @@ export async function completeConnection(userId: string, code: string) {
        picture_url=VALUES(picture_url), email=VALUES(email), scopes=VALUES(scopes), access_token_enc=VALUES(access_token_enc), expires_at=VALUES(expires_at)`,
     [uuid(), userId, urows[0].company_id, me.sub, me.name || null, me.given_name || null, me.family_name || null, me.picture || null, me.email || null,
      tok.scope || SCOPES.join(' '), encrypt(tok.access_token), expiresAt]);
-  return publicProfile(await getRow(userId));
+  return { profile: publicProfile(await getRow(userId)), companyId: urows[0].company_id as string };
 }
 
 // ───────────── Account state ─────────────
