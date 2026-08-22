@@ -1,0 +1,13 @@
+node_modules/
+backend/dist/
+frontend/dist/
+backend/storage/uploads/*
+backend/storage/payslips/*
+storage/uploads/*
+storage/payslips/*
+!.gitkeep
+.env
+.DS_Store
+*.log
+coverage/
+.vercel
