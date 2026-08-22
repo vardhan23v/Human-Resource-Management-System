@@ -80,8 +80,8 @@ export async function runSeed() {
       const userId=uuid();
       const empId=uuid();
       await conn.execute('INSERT INTO users (id, company_id, login_id, email, password_hash, role, status, email_verified_at) VALUES (?,?,?,?,?,?,?,NOW())',[userId, companyId, loginId, opts.email.toLowerCase(), hash, opts.role||'EMPLOYEE', 'ACTIVE']);
-      await conn.execute('INSERT INTO employees (id, user_id, company_id, name, first_name, last_name, department_id, designation, date_of_joining, manager_id, lifecycle_state, location, phone, about) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
-        [empId, userId, companyId, `${opts.firstName} ${opts.lastName}`, opts.firstName, opts.lastName, deptIds[opts.department]||null, opts.designation||null, opts.dateOfJoining, opts.managerId||null, 'ACTIVE', opts.location||'Bangalore', opts.phone||null, opts.about||null]);
+      await conn.execute('INSERT INTO employees (id, user_id, company_id, name, first_name, last_name, department_id, designation, date_of_joining, manager_id, lifecycle_state, location, phone, about, photo_url) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
+        [empId, userId, companyId, `${opts.firstName} ${opts.lastName}`, opts.firstName, opts.lastName, deptIds[opts.department]||null, opts.designation||null, opts.dateOfJoining, opts.managerId||null, 'ACTIVE', opts.location||'Bangalore', opts.phone||null, opts.about||null, opts.photo||null]);
       // leave balances for current year
       for(const code of Object.keys(ltIds)){
         const ltId=ltIds[code];
@@ -105,30 +105,30 @@ export async function runSeed() {
     }
 
     // Admin
-    const admin = await createEmp({ firstName:'Arjun', lastName:'Mehta', email:'admin@dayflow.local', role:'ADMIN', department:'Human Resources', designation:'HR Admin', dateOfJoining:'2022-01-10', monthlyWage:80000, phone:'9876543210', location:'Mumbai' });
+    const admin = await createEmp({ firstName:'Arjun', lastName:'Mehta', photo:'https://randomuser.me/api/portraits/men/32.jpg', email:'admin@dayflow.local', role:'ADMIN', department:'Human Resources', designation:'HR Admin', dateOfJoining:'2022-01-10', monthlyWage:80000, phone:'9876543210', location:'Mumbai' });
     console.log('Admin:', admin);
     // HR
-    const hr = await createEmp({ firstName:'Priya', lastName:'Sharma', email:'hr@dayflow.local', role:'HR', department:'Human Resources', designation:'HR Executive', dateOfJoining:'2022-02-15', monthlyWage:65000 });
+    const hr = await createEmp({ firstName:'Priya', lastName:'Sharma', photo:'https://randomuser.me/api/portraits/women/44.jpg', email:'hr@dayflow.local', role:'HR', department:'Human Resources', designation:'HR Executive', dateOfJoining:'2022-02-15', monthlyWage:65000 });
     console.log('HR:', hr);
     // Manager
-    const mgr = await createEmp({ firstName:'Vikram', lastName:'Singh', email:'vikram.singh@dayflow.local', role:'MANAGER', department:'Engineering', designation:'Engineering Manager', dateOfJoining:'2022-03-01', monthlyWage:90000 });
+    const mgr = await createEmp({ firstName:'Vikram', lastName:'Singh', photo:'https://randomuser.me/api/portraits/men/75.jpg', email:'vikram.singh@dayflow.local', role:'MANAGER', department:'Engineering', designation:'Engineering Manager', dateOfJoining:'2022-03-01', monthlyWage:90000 });
     console.log('Manager:', mgr);
 
     const employees = [];
     const empData = [
-      { fn:'John', ln:'Doe', dept:'Engineering', desg:'Senior Developer', doj:'2022-04-12', wage:70000 },
-      { fn:'Aisha', ln:'Khan', dept:'Engineering', desg:'Frontend Developer', doj:'2023-01-05', wage:60000 },
-      { fn:'Rohan', ln:'Patel', dept:'Sales', desg:'Sales Executive', doj:'2023-06-20', wage:45000 },
-      { fn:'Neha', ln:'Gupta', dept:'Marketing', desg:'Marketing Specialist', doj:'2023-08-11', wage:50000 },
-      { fn:'Karan', ln:'Malhotra', dept:'Finance', desg:'Finance Analyst', doj:'2022-11-03', wage:55000 },
-      { fn:'Sneha', ln:'Reddy', dept:'Engineering', desg:'QA Engineer', doj:'2024-02-14', wage:48000 },
-      { fn:'Amit', ln:'Verma', dept:'Sales', desg:'Account Manager', doj:'2024-05-09', wage:52000 },
-      { fn:'Divya', ln:'Nair', dept:'Marketing', desg:'Content Lead', doj:'2023-03-22', wage:47000 },
-      { fn:'Siddharth', ln:'Joshi', dept:'Finance', desg:'Accountant', doj:'2024-01-30', wage:40000 },
-      { fn:'Pooja', ln:'Desai', dept:'Engineering', desg:'DevOps Engineer', doj:'2023-09-18', wage:62000 },
+      { fn:'John', ln:'Doe', photo:'https://randomuser.me/api/portraits/men/11.jpg', dept:'Engineering', desg:'Senior Developer', doj:'2022-04-12', wage:70000 },
+      { fn:'Aisha', ln:'Khan', photo:'https://randomuser.me/api/portraits/women/65.jpg', dept:'Engineering', desg:'Frontend Developer', doj:'2023-01-05', wage:60000 },
+      { fn:'Rohan', ln:'Patel', photo:'https://randomuser.me/api/portraits/men/46.jpg', dept:'Sales', desg:'Sales Executive', doj:'2023-06-20', wage:45000 },
+      { fn:'Neha', ln:'Gupta', photo:'https://randomuser.me/api/portraits/women/21.jpg', dept:'Marketing', desg:'Marketing Specialist', doj:'2023-08-11', wage:50000 },
+      { fn:'Karan', ln:'Malhotra', photo:'https://randomuser.me/api/portraits/men/22.jpg', dept:'Finance', desg:'Finance Analyst', doj:'2022-11-03', wage:55000 },
+      { fn:'Sneha', ln:'Reddy', photo:'https://randomuser.me/api/portraits/women/57.jpg', dept:'Engineering', desg:'QA Engineer', doj:'2024-02-14', wage:48000 },
+      { fn:'Amit', ln:'Verma', photo:'https://randomuser.me/api/portraits/men/85.jpg', dept:'Sales', desg:'Account Manager', doj:'2024-05-09', wage:52000 },
+      { fn:'Divya', ln:'Nair', photo:'https://randomuser.me/api/portraits/women/33.jpg', dept:'Marketing', desg:'Content Lead', doj:'2023-03-22', wage:47000 },
+      { fn:'Siddharth', ln:'Joshi', photo:'https://randomuser.me/api/portraits/men/54.jpg', dept:'Finance', desg:'Accountant', doj:'2024-01-30', wage:40000 },
+      { fn:'Pooja', ln:'Desai', photo:'https://randomuser.me/api/portraits/women/12.jpg', dept:'Engineering', desg:'DevOps Engineer', doj:'2023-09-18', wage:62000 },
     ];
     for(const e of empData){
-      const emp=await createEmp({ firstName:e.fn, lastName:e.ln, email:`${e.fn.toLowerCase()}.${e.ln.toLowerCase()}@dayflow.local`, role:'EMPLOYEE', department:e.dept, designation:e.desg, dateOfJoining:e.doj, monthlyWage:e.wage, managerId: mgr.empId });
+      const emp=await createEmp({ firstName:e.fn, lastName:e.ln, email:`${e.fn.toLowerCase()}.${e.ln.toLowerCase()}@dayflow.local`, role:'EMPLOYEE', department:e.dept, designation:e.desg, dateOfJoining:e.doj, monthlyWage:e.wage, managerId: mgr.empId, photo:e.photo });
       employees.push(emp);
     }
     console.log('Employees created:', employees.length);

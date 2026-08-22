@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import LinkedInCard, { LinkedInLogo } from '../components/LinkedInCard';
 import { api } from '../utils/api';
+import Avatar from '../components/Avatar';
 import { useReveal } from '../hooks/useReveal';
 import { useToast } from '../components/Toast';
 import { useAuth } from '../context/AuthContext';
@@ -69,7 +70,7 @@ export default function Profile(){
     <div className="container" style={{ paddingTop:24, paddingBottom:40 }}>
       <div className="card fade-up" style={{ '--i': 1, display:'flex', gap:20, alignItems:'center', padding:20 } as any}>
         <div style={{ position:'relative' }}>
-          <img src={emp.photo_url || `https://i.pravatar.cc/200?u=${emp.id}`} style={{ width:88, height:88, borderRadius:999, objectFit:'cover' }} alt="" />
+          <Avatar src={emp.photo_url} name={emp.name} size={88} />
           {canEdit && <button style={{ position:'absolute', bottom:0, right:0, width:28, height:28, borderRadius:999, background:'var(--accent)', color:'white', border:'2px solid white', cursor:'pointer' }}>✏️</button>}
         </div>
         <div style={{ flex:1 }}>

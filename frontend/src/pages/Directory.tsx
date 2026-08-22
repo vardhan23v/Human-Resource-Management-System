@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { api } from '../utils/api';
+import Avatar from '../components/Avatar';
 import { useToast } from '../components/Toast';
 import { useAuth } from '../context/AuthContext';
 import { Link, useNavigate } from 'react-router-dom';
@@ -94,7 +95,7 @@ export default function Directory(){
               <div style={{ position:'absolute', top:12, right:12, width:12, height:12, borderRadius:999, background: emp.presence==='present' ? 'var(--success)' : emp.presence==='on_leave' ? '#0EA5E9' : '#F59E0B', border:'2px solid white', boxShadow:'0 0 0 2px rgba(0,0,0,0.06)' }} title={emp.presence} />
               {emp.presence==='on_leave' && <span style={{ position:'absolute', top:10, right:28, fontSize:11 }}>✈️</span>}
               <div style={{ display:'flex', gap:12, alignItems:'center' }}>
-                <img src={emp.photo_url || `https://i.pravatar.cc/100?u=${emp.id}`} alt="" style={{ width:56, height:56, borderRadius:999, objectFit:'cover', background:'var(--neutral-100)' }} />
+                <Avatar src={emp.photo_url} name={emp.name} size={56} />
                 <div>
                   <div style={{ fontWeight:700, fontSize:14 }}>{emp.name}</div>
                   <div style={{ fontSize:12, color:'var(--neutral-500)' }}>{emp.designation || emp.departmentName || '—'}</div>
