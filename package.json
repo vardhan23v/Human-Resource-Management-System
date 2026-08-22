@@ -2,16 +2,22 @@
   "name": "dayflow-hrms",
   "version": "2.2.0",
   "private": true,
-  "description": "Dayflow — Human Resource Management System",
-  "workspaces": ["backend", "frontend"],
+  "description": "Dayflow \u2014 Human Resource Management System",
+  "workspaces": [
+    "backend",
+    "frontend"
+  ],
   "scripts": {
     "dev": "concurrently \"npm run dev --workspace=backend\" \"npm run dev --workspace=frontend\"",
     "build": "npm run build --workspace=backend && npm run build --workspace=frontend",
     "test": "npm run test --workspace=backend",
     "migrate": "npm run migrate --workspace=backend",
-    "seed": "npm run seed --workspace=backend"
+    "seed": "npm run seed --workspace=backend",
+    "e2e": "playwright test -c e2e/playwright.config.ts",
+    "e2e:install": "playwright install --with-deps chromium"
   },
   "devDependencies": {
+    "@playwright/test": "^1.62.1",
     "concurrently": "^8.2.2"
   }
 }

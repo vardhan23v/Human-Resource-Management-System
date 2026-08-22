@@ -13,8 +13,9 @@ A production-grade Human Resource Management System — employee directory, atte
 ![Node](https://img.shields.io/badge/node-%E2%89%A520-339933?style=flat-square&logo=node.js&logoColor=white)
 ![TypeScript](https://img.shields.io/badge/typescript-strict-3178C6?style=flat-square&logo=typescript&logoColor=white)
 ![MySQL](https://img.shields.io/badge/mysql-8.x-4479A1?style=flat-square&logo=mysql&logoColor=white)
-![Tests](https://img.shields.io/badge/tests-14%20passing-0E9F6E?style=flat-square&logo=jest&logoColor=white)
-![Version](https://img.shields.io/badge/version-2.1.0-7C3AED?style=flat-square)
+[![CI](https://github.com/vardhan23v/Human-Resource-Management-System/actions/workflows/ci.yml/badge.svg)](https://github.com/vardhan23v/Human-Resource-Management-System/actions/workflows/ci.yml)
+![Tests](https://img.shields.io/badge/tests-24%20unit%20%2B%207%20e2e-0E9F6E?style=flat-square&logo=jest&logoColor=white)
+![Version](https://img.shields.io/badge/version-2.2.0-7C3AED?style=flat-square)
 
 [Live demo](#-live-demo) · [Quick start](#-quick-start) · [Architecture](#-architecture) · [API](#-api-reference) · [Domain rules](#-domain-rules) · [Deployment](#-deployment) · [Runbook](#-operations-runbook) · [Contributing](#-contributing)
 
@@ -27,7 +28,7 @@ A production-grade Human Resource Management System — employee directory, atte
 | | URL | Notes |
 |---|---|---|
 | **App** | https://frontend-iota-two-70.vercel.app | React SPA, static build |
-| **API** | https://dayflow-api.vercel.app | Express on Vercel Functions — [`/api/health`](https://dayflow-api.vercel.app/api/health) reports the DB target |
+| **API** | https://dayflow-api.vercel.app | Express on Vercel Functions — [`/api/health`](https://dayflow-api.vercel.app/api/health) reports DB + driver status · interactive docs at [`/api/docs`](https://dayflow-api.vercel.app/api/docs) |
 
 Sign in with any demo account (Login ID **or** email + password):
 
@@ -49,7 +50,12 @@ Sign in with any demo account (Login ID **or** email + password):
 - **Time off** — configurable leave types, live balances that exclude weekends/holidays, overlap detection, single- or multi-level approval, cancellation flow, approvals that sync straight into attendance.
 - **Payroll** — effective-dated salary structures, component rules (Basic/HRA/Standard/Bonus/LTA/Fixed, PF, PT), prorated monthly runs, idempotent re-runs, finalization lock, PDF payslips.
 - **Org admin** — work hours, week-off days, holidays, leave policies, departments.
-- **Cross-cutting** — in-app + email notifications, append-only audit log (actor, before/after, IP, UA), reports and CSV exports, role-scoped dashboard.
+- **Onboarding** — self-service checklist with progress ring (password, photo, contacts, emergency contact, documents, policy acknowledgement) and HR-generated offer-letter PDFs.
+- **Manager team view** — who's in / on leave / not in yet, with inline leave and regularisation approvals.
+- **Reports** — attendance summary per employee, leave utilisation, headcount by department, late arrivals; CSV export everywhere.
+- **Bulk import** — CSV → employees with per-row results and temp passwords; template download.
+- **Cross-cutting** — in-app + email notifications (Resend/SMTP), append-only audit log (actor, before/after, IP, UA), role-scoped dashboard, company branding (name + logo).
+- **Power-user UX** — ⌘K command palette (people search + actions), keyboard shortcuts (`c`, `n`, `t`, `g`+key, `?`), mobile drawer, installable PWA, full dark mode.
 - **UI** — hand-rolled design system (no UI kit), custom cursor, route transitions, staggered reveals, animated counters, toasts — all `prefers-reduced-motion` safe.
 
 ---
@@ -77,7 +83,8 @@ Open http://localhost:5173 and sign in with a [demo account](#-live-demo).
 |---|---|
 | `npm run dev` | Runs backend (`ts-node-dev`) and frontend (Vite) concurrently |
 | `npm run build` | `tsc` for the API → `backend/dist`, `tsc && vite build` for the SPA → `frontend/dist` |
-| `npm test` | Jest suites for the leave-balance and payroll engines |
+| `npm test` | Jest: leave/payroll engines + DB-free API contract tests (supertest) |
+| `npm run e2e` | Playwright smoke suite against `BASE_URL` (defaults to production) — `npm run e2e:install` once for Chromium |
 | `npm run migrate` / `npm run seed` | Schema + demo data against whatever `backend/.env` (or `DATABASE_URL`) points at |
 
 ---
@@ -164,7 +171,11 @@ All variables are read in [`backend/src/config/env.ts`](backend/src/config/env.t
 | `STORAGE_PATH` | `./storage` (`/tmp/dayflow-storage` on Vercel) | Uploads and payslip PDFs |
 | `AUTO_MIGRATE` | `false` | Apply `migrations/*.sql` on the first request if the schema is missing |
 | `AUTO_SEED` | `false` | Also load the demo company during that bootstrap |
-| `NODE_ENV` | `development` | `development` routes email to `jsonTransport` (logged, not sent) |
+| `NODE_ENV` | `development` | Environment label (also used by Sentry) |
+| `STORAGE_DRIVER` | `local` | `s3` for AWS S3 / Cloudflare R2 / MinIO — then set `S3_BUCKET`, `S3_REGION`, `S3_ENDPOINT` (R2/MinIO), `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY` |
+| `RESEND_API_KEY` / `SMTP_URL` | — | Email delivery. Neither set → emails are logged only (`/api/health` → `drivers.mail`) |
+| `UPSTASH_REDIS_REST_URL` / `_TOKEN` | — | Shared rate limiting across serverless instances; memory fallback otherwise |
+| `SENTRY_DSN` | — | Error monitoring; requests carry `X-Request-Id` for correlation |
 | `EMAIL_FROM` | `noreply@dayflow.local` | Sender address |
 | `PORT` | `4000` | Local server only |
 
@@ -299,7 +310,7 @@ Manager scope is derived from `employees.manager_id`. Every route layers `authMi
 
 ## 🗄 Data model
 
-Schema lives in [`backend/migrations/001_initial.sql`](backend/migrations/001_initial.sql) (MySQL 8, InnoDB, `utf8mb4`).
+Schema lives in `backend/migrations/*.sql` (MySQL 8, InnoDB, `utf8mb4`). `001` creates the base schema; later files are idempotent and tracked in a `schema_migrations` ledger, applied by `npm run migrate` or automatically by the serverless bootstrap (`AUTO_MIGRATE=true`).
 
 `companies` · `departments` · `users` · `join_serials` · `employees` · `employee_documents` · `employee_skills` · `employee_certifications` · `attendances` *(unique employee_id, date)* · `holidays` · `leave_types` · `leave_balances` · `leave_requests` · `regularizations` · `salary_structures` *(unique employee_id, effective_from)* · `payslips` *(unique employee_id, month)* · `notifications` · `audit_logs` *(append-only)* · `org_settings` · `refresh_tokens` · `password_reset_tokens`
 
@@ -343,9 +354,9 @@ vercel --prod                                                # VITE_* is baked i
 The first request to the API creates the schema (and seeds, if enabled). Check `GET /api/health` — `db.host` should be your MySQL host, not `localhost`.
 
 ### Caveats on serverless
-- **Files are ephemeral.** Uploads and payslip PDFs land in `/tmp` on the function instance and vanish on cold start. Swap `multer.diskStorage` and `fs.createWriteStream` for S3/R2 before relying on them.
+- **Files are ephemeral unless `STORAGE_DRIVER=s3`.** With the default `local` driver, uploads and payslip PDFs land in `/tmp` and vanish on cold start (payslips are regenerated on demand). Point it at S3 / Cloudflare R2 for persistence — no code change.
 - The MySQL pool is capped at **5 connections** on Vercel so a burst of cold starts can't exhaust a small hosted plan.
-- Rate limiting is per-instance memory; use Redis for real enforcement.
+- Rate limiting is per-instance memory unless Upstash Redis is configured.
 - `server.ts` (long-running) and `api/index.ts` (serverless) share the same `app` — run `node backend/dist/server.js` behind a reverse proxy if you'd rather deploy to a VM or container.
 
 ---
@@ -474,9 +485,8 @@ Motion is CSS-first and opt-out by default:
 5. Never commit `.env`, `.env.local`, or anything under `storage/`.
 
 ### Roadmap
-- Object storage (S3/R2) for documents and payslips
-- Redis-backed rate limiting and refresh-token cache
-- Manager dashboards with team analytics
+- Image posts on LinkedIn (Images API), scheduled posts
+- Refresh-token cache in Redis, device/session management UI
 - SSO (SAML/OIDC), biometric integrations, tax filing — explicitly out of scope for v2
 
 ---

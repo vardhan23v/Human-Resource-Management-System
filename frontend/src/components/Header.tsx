@@ -29,7 +29,7 @@ export default function Header() {
           <Link to="/directory" style={{ display:'flex', alignItems:'center', gap:10, textDecoration:'none', color:'inherit' }}>
             {user.companyLogo ? <img className="company-logo brand-mark" src={user.companyLogo} alt="" /> : <div className="brand-mark" style={{ width:32, height:32, borderRadius:8, background:'var(--accent)', color:'white', display:'flex', alignItems:'center', justifyContent:'center', fontWeight:800, fontFamily:'var(--font-display)' }}>D</div>}
             <span style={{ fontWeight:800, fontFamily:'var(--font-display)', letterSpacing:'-0.02em' }}>{user.companyLogo ? user.companyName : 'Dayflow'}</span>
-            {!user.companyLogo && <span className="desktop-only" style={{ fontSize:12, color:'var(--neutral-400)', fontWeight:600 }}>{user.companyName || ''}</span>}
+            {!user.companyLogo && <span className="desktop-only brand-sub" style={{ fontSize:12, color:'var(--neutral-400)', fontWeight:600 }}>{user.companyName || ''}</span>}
           </Link>
           <nav className="nav-links">
             <Link className={isActive('/directory')} to="/directory">Employees</Link>

@@ -12,3 +12,5 @@ storage/payslips/*
 coverage/
 .vercel
 .claude/
+test-results/
+playwright-report/

@@ -138,3 +138,6 @@ input[type="date"].input, input[type="month"].input { color-scheme: inherit; }
 .skip-link { position:absolute; left:-999px; top:8px; z-index:100; background: var(--accent); color:white; padding:8px 14px; border-radius:10px; font-weight:600; }
 .skip-link:focus { left:8px; }
 .company-logo { width:28px; height:28px; border-radius:8px; object-fit:cover; border:1px solid var(--hairline); }
+.nav-links a { white-space: nowrap; }
+@media (max-width: 1180px) { .nav-links a { padding: 7px 10px; font-size: 13px; } .topnav .desktop-only[aria-label="Open command palette"] { width: 44px !important; } .topnav .desktop-only[aria-label="Open command palette"] span, .topnav .desktop-only[aria-label="Open command palette"] kbd { display: none; } }
+@media (max-width: 980px) { .topnav .brand-sub { display: none; } }
