@@ -1,5 +1,8 @@
 # Dayflow — Human Resource Management System
 
+![Dayflow — Every workday, perfectly aligned.](docs/banner.png)
+
+
 > **Every workday, perfectly aligned.**  
 > Web-based HRMS for onboarding, profiles, attendance, leave, payroll, approvals, and audit — with self-service, approval-driven writes, and least-privilege RBAC.
 
