@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { parseJsonColumn } from '../../utils/json';
 import { authMiddleware, requireRole } from '../../middleware/auth';
 import { pool } from '../../db/pool';
 
@@ -16,7 +17,7 @@ router.get('/', async(req,res,next)=>{
     if(entity){ sql+=' AND entity=?'; params.push(entity); }
     sql+=' ORDER BY created_at DESC LIMIT ?'; params.push(String(limit));
     const [rows]:any=await pool.execute(sql, params);
-    res.json({ data: rows.map((r:any)=> ({ ...r, before: r.before_json? JSON.parse(r.before_json): null, after: r.after_json? JSON.parse(r.after_json): null })) });
+    res.json({ data: rows.map((r:any)=> ({ ...r, before: parseJsonColumn(r.before_json), after: parseJsonColumn(r.after_json) })) });
   }catch(e){next(e);}
 });
 

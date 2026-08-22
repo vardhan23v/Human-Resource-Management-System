@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { parseJsonColumn } from '../../utils/json';
 import { authMiddleware } from '../../middleware/auth';
 import { pool } from '../../db/pool';
 import { v4 as uuid } from 'uuid';
@@ -10,7 +11,7 @@ router.get('/', async(req,res,next)=>{
   try{
     const userId=(req as any).user.id;
     const [rows]:any=await pool.execute('SELECT * FROM notifications WHERE user_id=? ORDER BY created_at DESC LIMIT 50',[userId]);
-    res.json({ data: rows.map((r:any)=> ({ ...r, payload: r.payload? JSON.parse(r.payload): null })) });
+    res.json({ data: rows.map((r:any)=> ({ ...r, payload: parseJsonColumn(r.payload) })) });
   }catch(e){next(e);}
 });
 router.post('/:id/read', async(req,res,next)=>{
