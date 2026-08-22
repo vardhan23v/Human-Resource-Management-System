@@ -60,7 +60,7 @@ if ((process.env.AUTO_MIGRATE || '').toLowerCase() === 'true') {
 
 // root landing + health
 app.get('/', (_req,res)=> res.json({ name:'Dayflow HRMS API', version:'2.1.0', health:'/api/health', docs:'https://github.com/vardhan23v/Human-Resource-Management-System' }));
-app.get('/api/health', (_req,res)=> res.json({ status:'ok', time: new Date().toISOString(), version:'2.1.0' }));
+app.get('/api/health', (_req,res)=> res.json({ status:'ok', time: new Date().toISOString(), version:'2.1.0', db: { host: env.DB_HOST, port: env.DB_PORT, name: env.DB_NAME, ssl: env.DB_SSL, fromUrl: !!process.env.DATABASE_URL, serverless: env.IS_VERCEL } }));
 
 // routes
 app.use('/api/auth', authRoutes);
