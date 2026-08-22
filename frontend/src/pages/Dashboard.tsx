@@ -29,11 +29,11 @@ export default function Dashboard(){
       <div className="grid-2-1">
         <div className="card fade-up" style={{ '--i': 5 } as any}>
           <h4 style={{ margin:'0 0 12px' }}>Attendance % Trend (7 days)</h4>
-          <div style={{ display:'flex', alignItems:'flex-end', gap:6, height:120 }}>
+          <div style={{ display:'flex', alignItems:'stretch', gap:6, height:150 }}>
             {(stats.trend||[]).map((t:any, i:number)=> {
               const pct = stats.headcount? Math.min(100, Math.round(t.present/stats.headcount*100)):0;
               return (
-                <div key={t.date} style={{ flex:1, display:'flex', flexDirection:'column', alignItems:'center', gap:6 }}>
+                <div key={t.date} style={{ flex:1, height:'100%', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'flex-end', gap:6 }}>
                   <div className="bar-grow" title={`${pct}%`} style={{ width:'100%', background:'linear-gradient(180deg, var(--accent), #7C3AED)', borderRadius:'6px 6px 0 0', height: `${pct}%`, minHeight: pct? '8px':'2px', '--i': i } as any} />
                   <span style={{ fontSize:10, color:'var(--neutral-500)' }}>{t.date.slice(5)}</span>
                   <span style={{ fontSize:10, fontWeight:700 }}>{pct}%</span>

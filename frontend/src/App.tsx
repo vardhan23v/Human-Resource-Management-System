@@ -38,6 +38,14 @@ function Protected({ children, roles }: { children: React.ReactNode; roles?: str
   return <>{children}</>;
 }
 
+/** Auth pages are for signed-out visitors; a signed-in user goes straight to the app. */
+function PublicOnly({ children }: { children: React.ReactNode }) {
+  const { user, loading } = useAuth();
+  if (loading) return <AppLoader />;
+  if (user) return <Navigate to="/directory" replace />;
+  return <>{children}</>;
+}
+
 function NotFound() {
   return (
     <div className="container fade-up" style={{ padding: '80px 24px', textAlign: 'center' }}>
@@ -71,8 +79,8 @@ export default function App() {
           <CustomCursor />
           <Layout>
             <Routes>
-              <Route path="/signin" element={<SignIn />} />
-              <Route path="/signup" element={<SignUp />} />
+              <Route path="/signin" element={<PublicOnly><SignIn /></PublicOnly>} />
+              <Route path="/signup" element={<PublicOnly><SignUp /></PublicOnly>} />
               <Route path="/directory" element={<Protected><Directory /></Protected>} />
               <Route path="/profile/:id" element={<Protected><Profile /></Protected>} />
               <Route path="/attendance" element={<Protected><Attendance /></Protected>} />
