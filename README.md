@@ -188,3 +188,46 @@ Biometrics, tax filing, OKRs, ATS, native mobile, SAML/OIDC — noted as future.
 
 **Env:** Node 20+, MySQL 8.x (`utf8mb4`), macOS/Linux.  
 **Why MySQL:** Owner hard constraint; schema uses `DATETIME` UTC, `DECIMAL` for money, transactions for payroll & leave balance updates.
+
+## 12. Deployment (Vercel, two projects)
+
+The frontend and the API deploy as **two separate Vercel projects** from this monorepo. The API runs as a serverless function (`backend/api/index.ts` exports the Express app); the frontend is a static Vite build.
+
+| Project | Root directory | Production URL |
+|---|---|---|
+| `frontend` | `frontend/` | https://frontend-iota-two-70.vercel.app |
+| `dayflow-api` | `backend/` | https://dayflow-api.vercel.app (see the Vercel dashboard for the exact alias) |
+
+### 12.1 Hosted MySQL
+Vercel has no database — create a MySQL 8 instance on any host (Aiven, Railway, PlanetScale, TiDB Cloud, AWS RDS). Most require TLS: set `DB_SSL=true` (or pass `?ssl=true` in `DATABASE_URL`).
+
+### 12.2 API env vars (`dayflow-api` project → Settings → Environment Variables)
+| Var | Value |
+|---|---|
+| `DATABASE_URL` | `mysql://user:pass@host:3306/dayflow?ssl=true` — **or** the discrete `DB_HOST/DB_PORT/DB_USER/DB_PASSWORD/DB_NAME` |
+| `DB_SSL` | `true` for hosted MySQL |
+| `JWT_SECRET`, `JWT_REFRESH_SECRET` | two random 32+ char strings (`openssl rand -base64 32`) |
+| `CORS_ORIGIN` | `https://frontend-iota-two-70.vercel.app,http://localhost:5173` (comma-separated; `*.vercel.app` previews are auto-allowed when a `.vercel.app` origin is listed) |
+| `NODE_ENV` | `production` |
+
+Via CLI from `backend/`: `vercel env add DATABASE_URL production` (repeat per var), then `vercel --prod`.
+
+### 12.3 Migrate + seed the hosted DB (run locally, once)
+```bash
+cd backend && DATABASE_URL='mysql://user:pass@host:3306/dayflow?ssl=true' npm run migrate
+cd backend && DATABASE_URL='mysql://user:pass@host:3306/dayflow?ssl=true' npm run seed
+```
+
+### 12.4 Frontend env var (`frontend` project)
+`VITE_API_URL=https://<your-api-domain>.vercel.app` (no trailing slash). It's baked in at build time, so **redeploy the frontend after changing it**: `cd frontend && vercel --prod`.
+
+### 12.5 Caveats on serverless
+- **File storage is ephemeral.** Uploads and generated payslip PDFs are written to `/tmp` on the function instance and disappear on cold start. For persistent files, swap `multer.diskStorage` / `fs.createWriteStream` for an object store (S3/R2) — out of scope for v2.
+- The MySQL pool is capped at 5 connections on Vercel (`backend/src/db/pool.ts`) to avoid exhausting small hosted plans.
+- Access tokens expire in 15m; the frontend transparently refreshes once on a `401` (`frontend/src/utils/api.ts`).
+
+## 13. UI motion system (v2.1)
+- Custom cursor (dot + lagging ring, magnetic over interactive elements) — `frontend/src/components/CustomCursor.tsx`; fine-pointer only.
+- Route transitions, staggered card reveals (`.fade-up` + `--i`), scroll reveal (`useReveal`), animated stat counters, button ripple, toasts (`useToast`).
+- Everything honours `prefers-reduced-motion` — the kill switch in `frontend/src/styles/tokens.css` disables all animation/transition.
+

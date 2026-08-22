@@ -1,8 +1,12 @@
 import { useEffect, useState } from 'react';
 import { api } from '../utils/api';
+import { useReveal } from '../hooks/useReveal';
+import { useToast } from '../components/Toast';
 import { useAuth } from '../context/AuthContext';
 
 export default function Payroll(){
+  const toast = useToast();
+  useReveal();
   const { user } = useAuth();
   const isAdmin = user && ['ADMIN','HR'].includes(user.role);
   const [payslips, setPayslips] = useState<any[]>([]);
@@ -31,23 +35,23 @@ export default function Payroll(){
           <input type="month" className="input" value={month} onChange={e=> setMonth(e.target.value)} style={{ width:150 }} />
           {isAdmin && (
             <>
-              <button className="btn btn-primary" onClick={async()=>{
-                try{ const r=await api('/api/payroll/run',{method:'POST', body:JSON.stringify({month})}); alert(`Payroll run: ${r.data.count} payslips`); load(); }catch(e:any){ alert(e.message); }
+              <button className="btn btn-primary btn-press" onClick={async()=>{
+                try{ const r=await api('/api/payroll/run',{method:'POST', body:JSON.stringify({month})}); toast.success(`Payroll run: ${r.data.count} payslips`); load(); }catch(e:any){ toast.error(e.message); }
               }}>Run Payroll</button>
-              <button className="btn btn-ghost" onClick={async()=>{ if(confirm('Finalize payroll for '+month+'? Attendance edits will require Admin override.')){ await api('/api/payroll/finalize',{method:'POST', body:JSON.stringify({month})}); alert('Finalized'); load(); }}}>Finalize</button>
+              <button className="btn btn-ghost" onClick={async()=>{ if(confirm('Finalize payroll for '+month+'? Attendance edits will require Admin override.')){ await api('/api/payroll/finalize',{method:'POST', body:JSON.stringify({month})}); toast.success('Finalized'); load(); }}}>Finalize</button>
             </>
           )}
         </div>
       </div>
 
       {salary && !isAdmin && (
-        <div className="card" style={{ marginBottom:16 }}>
+        <div className="card fade-up" style={{ '--i': 1, marginBottom:16 } as any}>
           <h4 style={{ margin:'0 0 8px' }}>My Salary Structure</h4>
           <div style={{ fontSize:13, color:'var(--neutral-700)' }}>Monthly: <strong>₹{Number(salary.monthly_wage).toLocaleString('en-IN')}</strong> • Yearly: ₹{Number(salary.yearly_wage).toLocaleString('en-IN')} • Effective: {salary.effective_from.slice(0,10)}</div>
         </div>
       )}
 
-      <div className="table-wrap">
+      <div className="table-wrap reveal">
         <table>
           <thead><tr><th>Employee</th><th>Month</th><th>Gross</th><th>Deductions</th><th>Net</th><th>Payable Days</th><th>Status</th><th>PDF</th></tr></thead>
           <tbody>

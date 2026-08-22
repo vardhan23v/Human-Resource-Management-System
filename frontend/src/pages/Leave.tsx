@@ -1,8 +1,12 @@
 import { useEffect, useState } from 'react';
 import { api } from '../utils/api';
+import { useReveal } from '../hooks/useReveal';
+import { useToast } from '../components/Toast';
 import { useAuth } from '../context/AuthContext';
 
 export default function Leave(){
+  const toast = useToast();
+  useReveal();
   const { user } = useAuth();
   const isApprover = user && ['ADMIN','HR','MANAGER'].includes(user.role);
   const [activeTab, setActiveTab] = useState<'timeoff'|'allocation'>('timeoff');
@@ -61,7 +65,7 @@ export default function Leave(){
         </div>
         <div style={{ display:'flex', gap:8 }}>
           <input value={search} onChange={e=> setSearch(e.target.value)} placeholder="Search" className="input" style={{ width:180 }} />
-          <button className="btn btn-primary" onClick={()=> setShowNew(true)}>+ NEW</button>
+          <button className="btn btn-primary btn-press" onClick={()=> setShowNew(true)}>+ NEW</button>
         </div>
       </div>
 
@@ -79,7 +83,7 @@ export default function Leave(){
       </div>
 
       <div style={{ display:'grid', gridTemplateColumns: isApprover? '1fr' : '2fr 1fr', gap:16 }}>
-        <div className="table-wrap">
+        <div className="table-wrap reveal">
           <table>
             <thead><tr><th>Name</th><th>Start Date</th><th>End Date</th><th>Type</th><th>Status</th>{isApprover && <th>Action</th>}</tr></thead>
             <tbody>
@@ -93,11 +97,11 @@ export default function Leave(){
                   <td><span className={`badge ${r.status==='APPROVED'?'badge-success': r.status==='REJECTED'?'badge-warn': r.status==='PENDING'?'badge-neutral':'badge-neutral'}`} style={{ background: r.status==='APPROVED'?'var(--success-light)': r.status==='REJECTED'?'var(--danger-light)': r.status==='PENDING'?'var(--warn-light)':'' }}>{r.status}</span></td>
                   {isApprover && <td>{r.status==='PENDING' ? (
                     <div style={{ display:'flex', gap:6 }}>
-                      <button className="btn btn-primary btn-sm" style={{ background:'var(--success)' }} onClick={async()=>{ await api(`/api/leave/requests/${r.id}/decide`,{method:'POST', body:JSON.stringify({action:'APPROVED'})}); load(); }}>Approve</button>
+                      <button className="btn btn-primary btn-sm btn-press" style={{ background:'var(--success)' }} onClick={async()=>{ await api(`/api/leave/requests/${r.id}/decide`,{method:'POST', body:JSON.stringify({action:'APPROVED'})}); load(); }}>Approve</button>
                       <button className="btn btn-ghost btn-sm" style={{ color:'var(--danger)' }} onClick={async()=>{ const c=prompt('Reason'); await api(`/api/leave/requests/${r.id}/decide`,{method:'POST', body:JSON.stringify({action:'REJECTED', comment:c})}); load(); }}>Reject</button>
                     </div>
                   ) : r.status==='CANCELLATION_REQUESTED' ? (
-                    <div style={{ display:'flex', gap:6 }}><button className="btn btn-primary btn-sm" onClick={async()=>{ await api(`/api/leave/requests/${r.id}/decide`,{method:'POST', body:JSON.stringify({action:'APPROVED'})}); load(); }}>Confirm Cancel</button></div>
+                    <div style={{ display:'flex', gap:6 }}><button className="btn btn-primary btn-sm btn-press" onClick={async()=>{ await api(`/api/leave/requests/${r.id}/decide`,{method:'POST', body:JSON.stringify({action:'APPROVED'})}); load(); }}>Confirm Cancel</button></div>
                   ) : '—'}</td>}
                 </tr>
               ))}
@@ -107,7 +111,7 @@ export default function Leave(){
 
         {!isApprover && (
           <div style={{ display:'flex', flexDirection:'column', gap:16 }}>
-            <div className="card">
+            <div className="card fade-up" style={{ '--i': 1 } as any}>
               <h4 style={{ margin:'0 0 12px' }}>Year Calendar</h4>
               <div style={{ display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap:8 }}>
                 {Array.from({length:12}).map((_,m)=>{
@@ -135,7 +139,7 @@ export default function Leave(){
                 <span><span style={{ display:'inline-block', width:10, height:10, background:'var(--danger)', borderRadius:2, marginRight:4 }} />Refused</span>
               </div>
             </div>
-            <div className="card">
+            <div className="card fade-up" style={{ '--i': 2 } as any}>
               <h4 style={{ margin:'0 0 8px' }}>Public Holidays</h4>
               {holidays.map((h:any)=> <div key={h.id} style={{ display:'flex', justifyContent:'space-between', padding:'6px 0', fontSize:13, borderBottom:'1px solid var(--neutral-100)' }}><span>{h.name}</span><span style={{ color:'var(--neutral-500)' }}>{h.date.slice(0,10)}</span></div>)}
               {holidays.length===0 && <div style={{ fontSize:13, color:'var(--neutral-500)' }}>No holidays</div>}
@@ -145,9 +149,9 @@ export default function Leave(){
       </div>
 
       {activeTab==='allocation' && isApprover && (
-        <div className="card" style={{ marginTop:16 }}>
+        <div className="card fade-up" style={{ '--i': 3, marginTop:16 } as any}>
           <h3 style={{ marginTop:0 }}>Leave Allocation — Balance Overview</h3>
-          <div className="table-wrap">
+          <div className="table-wrap reveal">
             <table><thead><tr><th>Employee</th><th>Leave Type</th><th>Allocated</th><th>Used</th><th>Available</th></tr></thead>
             <tbody>
               {balances.map((b:any)=> <tr key={b.id}><td>—</td><td>{b.name}</td><td>{b.allocated}</td><td>{b.used}</td><td>{(b.allocated - b.used).toFixed(1)}</td></tr>)}
@@ -177,11 +181,11 @@ export default function Leave(){
             </div>
             <div style={{ display:'flex', justifyContent:'flex-end', gap:8, marginTop:16 }}>
               <button className="btn btn-ghost" onClick={()=> setShowNew(false)}>Discard</button>
-              <button className="btn btn-primary" onClick={async()=>{
+              <button className="btn btn-primary btn-press" onClick={async()=>{
                 try{
                   const r=await api('/api/leave/requests',{method:'POST', body:JSON.stringify({ leaveTypeId: form.leaveTypeId, startDate: form.startDate, endDate: form.endDate, halfDay: form.halfDay, remarks: form.remarks, attachmentUrl: form.attachmentUrl })});
-                  alert(`Request submitted — ${r.data.days} days`); setShowNew(false); load();
-                }catch(e:any){ alert(e.message); }
+                  toast.success(`Request submitted — ${r.data.days} days`); setShowNew(false); load();
+                }catch(e:any){ toast.error(e.message); }
               }}>Submit</button>
             </div>
           </div>

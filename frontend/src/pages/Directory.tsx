@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react';
 import { api } from '../utils/api';
+import { useToast } from '../components/Toast';
 import { useAuth } from '../context/AuthContext';
 import { Link, useNavigate } from 'react-router-dom';
 
 export default function Directory(){
+  const toast = useToast();
   const { user } = useAuth();
   const nav = useNavigate();
   const [employees, setEmployees] = useState<any[]>([]);
@@ -41,7 +43,7 @@ export default function Directory(){
       if(!checkStatus?.checkedIn) await api('/api/attendance/check-in',{method:'POST'});
       else if(checkStatus.checkedIn && !checkStatus.checkedOut) await api('/api/attendance/check-out',{method:'POST'});
       await loadCheck(); await load();
-    }catch(e:any){ alert(e.message); }
+    }catch(e:any){ toast.error(e.message); }
   }
 
   const formatSince = ()=>{
@@ -75,12 +77,12 @@ export default function Directory(){
         </div>
         <div style={{ display:'flex', gap:10, alignItems:'center' }}>
           <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search employees..." className="input" style={{ width:260 }} />
-          {user && ['ADMIN','HR'].includes(user.role) && <button className="btn btn-primary" onClick={()=> setShowNew(true)}>+ NEW</button>}
+          {user && ['ADMIN','HR'].includes(user.role) && <button className="btn btn-primary btn-press" onClick={()=> setShowNew(true)}>+ NEW</button>}
         </div>
       </div>
 
       {loading ? (
-        <div className="grid-cards">{Array.from({length:8}).map((_,i)=> <div key={i} className="card" style={{ height:140 }}><div className="skeleton" style={{ height:48, width:48, borderRadius:999 }} /><div className="skeleton" style={{ height:14, marginTop:12 }} /><div className="skeleton" style={{ height:10, marginTop:8, width:'60%' }} /></div>)}</div>
+        <div className="grid-cards">{Array.from({length:8}).map((_,i)=> <div key={i} className="card fade-up" style={{ '--i': 1, height:140 } as any}><div className="skeleton" style={{ height:48, width:48, borderRadius:999 }} /><div className="skeleton" style={{ height:14, marginTop:12 }} /><div className="skeleton" style={{ height:10, marginTop:8, width:'60%' }} /></div>)}</div>
       ) : employees.length===0 ? (
         <div style={{ textAlign:'center', padding:60, background:'white', borderRadius:16, border:'1px dashed var(--neutral-200)' }}>
           <div style={{ fontSize:28, marginBottom:8 }}>🫥</div><div style={{ fontWeight:700 }}>No employees found</div><div style={{ color:'var(--neutral-500)', fontSize:13, marginTop:4 }}>Try adjusting search or add a new employee.</div>
@@ -132,12 +134,12 @@ export default function Directory(){
             </div>
             <div style={{ display:'flex', justifyContent:'flex-end', gap:8, marginTop:20 }}>
               <button className="btn btn-ghost" onClick={()=> setShowNew(false)}>Discard</button>
-              <button className="btn btn-primary" onClick={async()=>{
+              <button className="btn btn-primary btn-press" onClick={async()=>{
                 try{
                   const r=await api('/api/auth/employees',{method:'POST', body:JSON.stringify(newForm)});
-                  alert(`Created ${r.data.loginId} — temp password: ${r.data.tempPassword}`);
+                  toast.toast(`Created ${r.data.loginId} — temp password: ${r.data.tempPassword}`,{kind:'success',duration:15000});
                   setShowNew(false); load();
-                }catch(e:any){ alert(e.message); }
+                }catch(e:any){ toast.error(e.message); }
               }}>Create</button>
             </div>
           </div>

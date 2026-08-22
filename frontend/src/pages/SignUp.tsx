@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { Link, useNavigate } from 'react-router-dom';
+import AuthHero from '../components/AuthHero';
 
 export default function SignUp(){
   const { signup } = useAuth();
@@ -19,11 +20,13 @@ export default function SignUp(){
   }
 
   return (
-    <div style={{ minHeight:'100vh', display:'flex', alignItems:'center', justifyContent:'center', background:'var(--bg)', padding:24 }}>
-      <div style={{ width:480, background:'white', borderRadius:16, boxShadow:'var(--shadow-lg)', padding:32 }} className="fade-up">
-        <h2 style={{ margin:'0 0 4px', fontSize:22 }}>Create your company</h2>
+    <div className="auth-shell">
+      <AuthHero />
+      <div className="auth-form">
+      <div className="auth-card fade-up" style={{ '--i': 2, width:'min(480px,100%)' } as any}>
+        <h2 style={{ margin:'0 0 4px', fontSize:24 }}>Create your company</h2>
         <p style={{ color:'var(--neutral-500)', fontSize:13, margin:'0 0 18px' }}>Sign up registers your Company + first Admin — employees are invited by you.</p>
-        {err && <div style={{ background:'var(--danger-light)', color:'var(--danger)', padding:'10px 12px', borderRadius:8, fontSize:13, marginBottom:16 }}>{err}</div>}
+        {err && <div className="fade-up" role="alert" style={{ background:'var(--danger-light)', color:'var(--danger)', padding:'10px 12px', borderRadius:8, fontSize:13, marginBottom:16 }}>{err}</div>}
         <form onSubmit={submit} style={{ display:'flex', flexDirection:'column', gap:12 }}>
           <div style={{ display:'flex', alignItems:'center', gap:16, padding:'12px', border:'1px dashed var(--neutral-200)', borderRadius:12, background:'var(--neutral-50)' }}>
             <div style={{ width:56, height:56, borderRadius:12, background:'white', border:'1px solid var(--neutral-200)', display:'flex', alignItems:'center', justifyContent:'center', overflow:'hidden' }}>
@@ -48,9 +51,10 @@ export default function SignUp(){
             </div>
           </div>
           <div><label className="label">Confirm Password</label><input className="input" type={show?'text':'password'} value={form.confirmPassword} onChange={e=>setForm({...form, confirmPassword:e.target.value})} required /></div>
-          <button className="btn btn-primary" disabled={loading} style={{ width:'100%', justifyContent:'center', marginTop:8 }}>{loading?'Creating…':'Sign Up'}</button>
+          <button className="btn btn-primary btn-press" disabled={loading} style={{ width:'100%', justifyContent:'center', marginTop:8 }}>{loading?'Creating…':'Sign Up'}</button>
         </form>
         <p style={{ textAlign:'center', fontSize:13, marginTop:16, color:'var(--neutral-500)' }}>Already have an account? <Link to="/signin" style={{ color:'var(--accent)', fontWeight:700, textDecoration:'none' }}>Sign in</Link></p>
+      </div>
       </div>
     </div>
   );

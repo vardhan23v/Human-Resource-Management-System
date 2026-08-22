@@ -1,8 +1,13 @@
 import { useEffect, useState } from 'react';
 import { api } from '../utils/api';
+import { useReveal } from '../hooks/useReveal';
+import PageHeader from '../components/PageHeader';
+import { useToast } from '../components/Toast';
 import { useAuth } from '../context/AuthContext';
 
 export default function Attendance(){
+  const toast = useToast();
+  useReveal();
   const { user } = useAuth();
   const isAdmin = user && ['ADMIN','HR','MANAGER'].includes(user.role);
   const [date, setDate] = useState(new Date().toISOString().slice(0,10));
@@ -40,7 +45,7 @@ export default function Attendance(){
 
   return (
     <div className="container" style={{ paddingTop:24, paddingBottom:40 }}>
-      <h2 style={{ margin:'0 0 16px' }}>Attendance</h2>
+      <PageHeader title="Attendance" subtitle="Check in, review the team, and fix anomalies." />
 
       {isAdmin ? (
         <>
@@ -53,9 +58,9 @@ export default function Attendance(){
             </div>
             <input value={search} onChange={e=> setSearch(e.target.value)} placeholder="Search" className="input" style={{ width:220 }} />
             <button className="btn btn-ghost" onClick={()=> window.open(`/api/reports/export/attendance?from=${date}&to=${date}`,'_blank')}>Export CSV</button>
-            <button className="btn btn-primary" onClick={()=> setShowReg(true)}>Request Regularization</button>
+            <button className="btn btn-primary btn-press" onClick={()=> setShowReg(true)}>Request Regularization</button>
           </div>
-          <div className="table-wrap">
+          <div className="table-wrap reveal">
             <table>
               <thead><tr><th>Emp</th><th>Check In</th><th>Check Out</th><th>Work Hours</th><th>Extra Hours</th><th>Status</th></tr></thead>
               <tbody>
@@ -75,13 +80,13 @@ export default function Attendance(){
           </div>
           {/* regularization queue for approvers */}
           {isAdmin && regularizations.length>0 && (
-            <div className="card" style={{ marginTop:16 }}>
+            <div className="card fade-up" style={{ '--i': 1, marginTop:16 } as any}>
               <h4 style={{ marginTop:0 }}>Regularization Requests</h4>
-              <div className="table-wrap">
+              <div className="table-wrap reveal">
                 <table><thead><tr><th>Employee</th><th>Date</th><th>Reason</th><th>Status</th><th>Action</th></tr></thead>
                 <tbody>{regularizations.map((rq:any)=>(
                   <tr key={rq.id}><td>{rq.employeeName}</td><td>{rq.date.slice(0,10)}</td><td>{rq.reason}</td><td><span className="badge badge-neutral">{rq.status}</span></td><td>{rq.status==='PENDING' && (
-                    <div style={{ display:'flex', gap:6 }}><button className="btn btn-primary btn-sm" onClick={async()=>{ await api(`/api/attendance/regularizations/${rq.id}/decide`,{method:'POST', body:JSON.stringify({action:'APPROVED'})}); loadRegs(); }}>Approve</button><button className="btn btn-ghost btn-sm" onClick={async()=>{ await api(`/api/attendance/regularizations/${rq.id}/decide`,{method:'POST', body:JSON.stringify({action:'REJECTED'})}); loadRegs(); }}>Reject</button></div>
+                    <div style={{ display:'flex', gap:6 }}><button className="btn btn-primary btn-sm btn-press" onClick={async()=>{ await api(`/api/attendance/regularizations/${rq.id}/decide`,{method:'POST', body:JSON.stringify({action:'APPROVED'})}); loadRegs(); }}>Approve</button><button className="btn btn-ghost btn-sm" onClick={async()=>{ await api(`/api/attendance/regularizations/${rq.id}/decide`,{method:'POST', body:JSON.stringify({action:'REJECTED'})}); loadRegs(); }}>Reject</button></div>
                   )}</td></tr>
                 ))}</tbody></table>
               </div>
@@ -103,9 +108,9 @@ export default function Attendance(){
                 <span className="chip">Total working: {(summary.present||0)+(summary.leave||0)+(summary.absent||0)}</span>
               </div>
             )}
-            <button className="btn btn-primary btn-sm" onClick={()=> setShowReg(true)}>Request Correction</button>
+            <button className="btn btn-primary btn-sm btn-press" onClick={()=> setShowReg(true)}>Request Correction</button>
           </div>
-          <div className="table-wrap">
+          <div className="table-wrap reveal">
             <table>
               <thead><tr><th>Date</th><th>Check In</th><th>Check Out</th><th>Work Hours</th><th>Extra Hours</th></tr></thead>
               <tbody>
@@ -117,7 +122,7 @@ export default function Attendance(){
             </table>
           </div>
           {/* heatmap */}
-          <div className="card" style={{ marginTop:16 }}>
+          <div className="card fade-up" style={{ '--i': 2, marginTop:16 } as any}>
             <h4 style={{ margin:'0 0 12px' }}>Monthly Calendar</h4>
             <div style={{ display:'grid', gridTemplateColumns:'repeat(7, 1fr)', gap:6 }}>
               {['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map(d=> <div key={d} style={{ fontSize:11, fontWeight:700, color:'var(--neutral-500)', textAlign:'center' }}>{d}</div>)}
@@ -145,11 +150,11 @@ export default function Attendance(){
             </div>
             <div style={{ display:'flex', justifyContent:'flex-end', gap:8, marginTop:16 }}>
               <button className="btn btn-ghost" onClick={()=> setShowReg(false)}>Discard</button>
-              <button className="btn btn-primary" onClick={async()=>{
+              <button className="btn btn-primary btn-press" onClick={async()=>{
                 try{
                   await api('/api/attendance/regularizations',{method:'POST', body:JSON.stringify({ date: regForm.date, requestedCheckIn: regForm.date+' '+regForm.requestedCheckIn+':00', requestedCheckOut: regForm.date+' '+regForm.requestedCheckOut+':00', reason: regForm.reason })});
-                  alert('Request submitted for approval'); setShowReg(false); loadRegs();
-                }catch(e:any){ alert(e.message); }
+                  toast.success('Request submitted for approval'); setShowReg(false); loadRegs();
+                }catch(e:any){ toast.error(e.message); }
               }}>Submit</button>
             </div>
           </div>

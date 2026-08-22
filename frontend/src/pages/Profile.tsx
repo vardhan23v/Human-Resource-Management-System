@@ -1,9 +1,13 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { api } from '../utils/api';
+import { useReveal } from '../hooks/useReveal';
+import { useToast } from '../components/Toast';
 import { useAuth } from '../context/AuthContext';
 
 export default function Profile(){
+  const toast = useToast();
+  useReveal();
   const { id } = useParams();
   const { user } = useAuth();
   const [emp, setEmp] = useState<any>(null);
@@ -26,7 +30,7 @@ export default function Profile(){
         // try fetch payroll salary
         try{ const s=await api(`/api/payroll/salary/${id}`); if(s.data){ setSalary(s.data); setWage(Number(s.data.monthly_wage)); } }catch{}
       }
-    }catch(e:any){ alert(e.message); }
+    }catch(e:any){ toast.error(e.message); }
   }
   useEffect(()=>{ load(); },[id]);
 
@@ -40,8 +44,8 @@ export default function Profile(){
     setSaving(true);
     try{
       await api(`/api/employees/${id}`, { method:'PATCH', body: JSON.stringify(edit) });
-      await load(); alert('Saved');
-    }catch(e:any){ alert(e.message); } finally{ setSaving(false); }
+      await load(); toast.success('Saved');
+    }catch(e:any){ toast.error(e.message); } finally{ setSaving(false); }
   }
 
   // salary calc preview
@@ -61,7 +65,7 @@ export default function Profile(){
 
   return (
     <div className="container" style={{ paddingTop:24, paddingBottom:40 }}>
-      <div className="card" style={{ display:'flex', gap:20, alignItems:'center', padding:20 }}>
+      <div className="card fade-up" style={{ '--i': 1, display:'flex', gap:20, alignItems:'center', padding:20 } as any}>
         <div style={{ position:'relative' }}>
           <img src={emp.photo_url || `https://i.pravatar.cc/200?u=${emp.id}`} style={{ width:88, height:88, borderRadius:999, objectFit:'cover' }} alt="" />
           {canEdit && <button style={{ position:'absolute', bottom:0, right:0, width:28, height:28, borderRadius:999, background:'var(--accent)', color:'white', border:'2px solid white', cursor:'pointer' }}>✏️</button>}
@@ -97,14 +101,14 @@ export default function Profile(){
               { key:'what_i_love', title:'What I love about my job', placeholder:'Share what excites you' },
               { key:'interests', title:'My interests and hobbies', placeholder:'Your hobbies & interests' },
             ].map(block=>(
-              <div key={block.key} className="card">
+              <div key={block.key} className="card fade-up" style={{ '--i': 2 } as any}>
                 <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}><h4 style={{ margin:0 }}>{block.title}</h4>{canEdit && <button onClick={save} className="btn btn-ghost btn-sm">✏️</button>}</div>
                 {edit && <textarea className="input" value={edit[block.key]} onChange={e=> setEdit({...edit, [block.key]:e.target.value})} placeholder={block.placeholder} rows={3} style={{ marginTop:10 }} />}
               </div>
             ))}
           </div>
           <div style={{ display:'flex', flexDirection:'column', gap:16 }}>
-            <div className="card">
+            <div className="card fade-up" style={{ '--i': 3 } as any}>
               <div style={{ display:'flex', justifyContent:'space-between' }}><h4 style={{ margin:0 }}>Skills</h4><button className="btn btn-ghost btn-sm" onClick={async()=>{ if(!newSkill) return; await api(`/api/employees/${id}/skills`,{method:'POST', body:JSON.stringify({name:newSkill})}); setNewSkill(''); load(); }}>+ Add</button></div>
               <div style={{ display:'flex', gap:6, flexWrap:'wrap', marginTop:12 }}>
                 {(emp.skills||[]).map((s:any)=> <span key={s.id} className="chip">{s.name} <button onClick={async()=>{ await api(`/api/employees/${id}/skills/${s.id}`,{method:'DELETE'}); load(); }} style={{ background:'transparent', border:'none', cursor:'pointer', color:'var(--neutral-400)' }}>×</button></span>)}
@@ -112,7 +116,7 @@ export default function Profile(){
               </div>
               <input className="input" value={newSkill} onChange={e=> setNewSkill(e.target.value)} placeholder="Add a skill" style={{ marginTop:10 }} />
             </div>
-            <div className="card">
+            <div className="card fade-up" style={{ '--i': 4 } as any}>
               <h4 style={{ margin:'0 0 10px' }}>Certification</h4>
               {(emp.certifications||[]).map((c:any)=> <div key={c.id} style={{ padding:'8px 10px', background:'var(--neutral-50)', borderRadius:8, marginBottom:6, fontSize:13 }}>{c.title} <span style={{ color:'var(--neutral-500)' }}>{c.issuer?`• ${c.issuer}`:''}</span></div>)}
               <button className="btn btn-ghost btn-sm" onClick={async()=>{ const title=prompt('Certification title'); if(title){ await api(`/api/employees/${id}/certifications`,{method:'POST', body:JSON.stringify({title})}); load(); } }}>+ Add Certification</button>
@@ -122,7 +126,7 @@ export default function Profile(){
       )}
 
       {tab==='private' && (
-        <div className="card" style={{ marginTop:16 }}>
+        <div className="card fade-up" style={{ '--i': 5, marginTop:16 } as any}>
           <h3 style={{ marginTop:0 }}>Private Info</h3>
           <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:14 }}>
             <div><label className="label">Date of Birth</label><input className="input" type="date" value={emp.dob?.slice(0,10)||''} onChange={e=> setEdit({...edit, dob:e.target.value})} disabled={!canEdit} /></div>
@@ -143,13 +147,13 @@ export default function Profile(){
             <div><label className="label">Emp Code</label><input className="input" value={emp.emp_code||''} disabled /></div>
           </div>
           <div style={{ marginTop:16, display:'flex', justifyContent:'flex-end' }}>
-            <button className="btn btn-primary" onClick={save} disabled={saving}>{saving?'Saving…':'Save changes'}</button>
+            <button className="btn btn-primary btn-press" onClick={save} disabled={saving}>{saving?'Saving…':'Save changes'}</button>
           </div>
         </div>
       )}
 
       {tab==='salary' && (
-        <div className="card" style={{ marginTop:16 }}>
+        <div className="card fade-up" style={{ '--i': 6, marginTop:16 } as any}>
           {user && ['ADMIN','HR'].includes(user.role) || isOwn ? (
             <>
               <h3 style={{ marginTop:0 }}>Salary Info</h3>
@@ -161,7 +165,7 @@ export default function Profile(){
               <div style={{ display:'flex', gap:12, fontSize:13, marginBottom:12 }}>
                 <span>No. of working days / week: <strong>5</strong></span><span>Break Time: <strong>1 hr</strong></span>
               </div>
-              <div className="table-wrap">
+              <div className="table-wrap reveal">
                 <table>
                   <thead><tr><th>Component</th><th>Rule</th><th>Amount (₹/mo)</th></tr></thead>
                   <tbody>
@@ -173,13 +177,13 @@ export default function Profile(){
                 </table>
               </div>
               <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16, marginTop:16 }}>
-                <div className="card" style={{ background:'var(--neutral-50)' }}><strong>Provident Fund</strong><div style={{ fontSize:13, marginTop:6 }}>Employee 12% of Basic: ₹{pfEmp.toFixed(2)} + Employer 12%: ₹{pfEmpr.toFixed(2)}</div></div>
-                <div className="card" style={{ background:'var(--neutral-50)' }}><strong>Tax Deductions</strong><div style={{ fontSize:13, marginTop:6 }}>Professional Tax: ₹{pt}/month deducted from gross</div></div>
+                <div className="card fade-up" style={{ '--i': 7, background:'var(--neutral-50)' } as any}><strong>Provident Fund</strong><div style={{ fontSize:13, marginTop:6 }}>Employee 12% of Basic: ₹{pfEmp.toFixed(2)} + Employer 12%: ₹{pfEmpr.toFixed(2)}</div></div>
+                <div className="card fade-up" style={{ '--i': 8, background:'var(--neutral-50)' } as any}><strong>Tax Deductions</strong><div style={{ fontSize:13, marginTop:6 }}>Professional Tax: ₹{pt}/month deducted from gross</div></div>
               </div>
               {user && ['ADMIN','HR'].includes(user.role) && (
                 <div style={{ display:'flex', justifyContent:'flex-end', marginTop:16 }}>
-                  <button className="btn btn-primary" onClick={async()=>{
-                    try{ await api('/api/payroll/salary',{method:'POST', body:JSON.stringify({ employeeId:id, monthlyWage:wage, yearlyWage:wage*12 })}); alert('Salary structure updated'); load(); }catch(e:any){ alert(e.message); }
+                  <button className="btn btn-primary btn-press" onClick={async()=>{
+                    try{ await api('/api/payroll/salary',{method:'POST', body:JSON.stringify({ employeeId:id, monthlyWage:wage, yearlyWage:wage*12 })}); toast.success('Salary structure updated'); load(); }catch(e:any){ toast.error(e.message); }
                   }}>Save Salary Structure</button>
                 </div>
               )}
@@ -189,7 +193,7 @@ export default function Profile(){
       )}
 
       {tab==='security' && (
-        <div className="card" style={{ marginTop:16, maxWidth:480 }}>
+        <div className="card fade-up" style={{ '--i': 9, marginTop:16, maxWidth:480 } as any}>
           <h3 style={{ marginTop:0 }}>Security</h3>
           <ChangePassword />
         </div>
@@ -205,7 +209,7 @@ function ChangePassword(){
       <div><label className="label">Current Password</label><input type="password" className="input" value={cur} onChange={e=>setCur(e.target.value)} /></div>
       <div><label className="label">New Password</label><input type="password" className="input" value={nxt} onChange={e=>setNxt(e.target.value)} /></div>
       {msg && <div style={{ fontSize:13, color: msg.includes('success')? 'var(--success)':'var(--danger)' }}>{msg}</div>}
-      <button className="btn btn-primary" onClick={async()=>{
+      <button className="btn btn-primary btn-press" onClick={async()=>{
         try{ await api('/api/auth/change-password',{method:'POST', body:JSON.stringify({currentPassword:cur, newPassword:nxt})}); setMsg('Password changed successfully'); }catch(e:any){ setMsg(e.message); }
       }}>Change Password</button>
     </div>

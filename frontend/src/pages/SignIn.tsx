@@ -2,10 +2,13 @@ import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { Link, useNavigate } from 'react-router-dom';
 import { api } from '../utils/api';
+import AuthHero from '../components/AuthHero';
+import { useToast } from '../components/Toast';
 
 export default function SignIn(){
   const { login } = useAuth();
   const nav = useNavigate();
+  const toast = useToast();
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [show, setShow] = useState(false);
@@ -20,14 +23,13 @@ export default function SignIn(){
   }
 
   return (
-    <div style={{ minHeight:'100vh', display:'flex', alignItems:'center', justifyContent:'center', background:'var(--bg)', padding:24 }}>
-      <div style={{ width:420, background:'white', borderRadius:16, boxShadow:'var(--shadow-lg)', padding:32 }} className="fade-up">
-        <div style={{ display:'flex', justifyContent:'center', marginBottom:16 }}>
-          <div style={{ width:48, height:48, borderRadius:12, background:'var(--accent)', color:'white', display:'flex', alignItems:'center', justifyContent:'center', fontWeight:800, fontSize:20 }}>D</div>
-        </div>
-        <h2 style={{ textAlign:'center', margin:'0 0 6px', fontSize:22 }}>Welcome back</h2>
-        <p style={{ textAlign:'center', color:'var(--neutral-500)', fontSize:13, margin:'0 0 22px' }}>Sign in with your Login ID or Email</p>
-        {err && <div style={{ background:'var(--danger-light)', color:'var(--danger)', padding:'10px 12px', borderRadius:8, fontSize:13, marginBottom:16 }}>{err}</div>}
+    <div className="auth-shell">
+      <AuthHero />
+      <div className="auth-form">
+      <div className="auth-card fade-up" style={{ '--i': 2 } as any}>
+        <h2 style={{ margin:'0 0 6px', fontSize:24 }}>Welcome back 👋</h2>
+        <p style={{ color:'var(--neutral-500)', fontSize:13, margin:'0 0 22px' }}>Sign in with your Login ID or Email</p>
+        {err && <div className="fade-up" role="alert" style={{ background:'var(--danger-light)', color:'var(--danger)', padding:'10px 12px', borderRadius:8, fontSize:13, marginBottom:16 }}>{err}</div>}
         <form onSubmit={submit} style={{ display:'flex', flexDirection:'column', gap:14 }}>
           <div>
             <label className="label">Login ID / Email</label>
@@ -43,7 +45,7 @@ export default function SignIn(){
               <a href="#" onClick={e=>{e.preventDefault(); setForgot(true);}} style={{ fontSize:12, color:'var(--accent)', textDecoration:'none', fontWeight:600 }}>Forgot password?</a>
             </div>
           </div>
-          <button className="btn btn-primary" disabled={loading} style={{ width:'100%', justifyContent:'center', marginTop:4 }}>{loading?'Signing in…':'SIGN IN'}</button>
+          <button className="btn btn-primary btn-press" disabled={loading} style={{ width:'100%', justifyContent:'center', marginTop:4 }}>{loading?'Signing in…':'Sign in'}</button>
         </form>
         <p style={{ textAlign:'center', fontSize:13, marginTop:18, color:'var(--neutral-500)' }}>Don't have an Account? <Link to="/signup" style={{ color:'var(--accent)', fontWeight:700, textDecoration:'none' }}>Sign Up</Link></p>
         <div style={{ marginTop:18, background:'var(--neutral-50)', borderRadius:10, padding:12, fontSize:12, color:'var(--neutral-500)' }}>
@@ -57,11 +59,12 @@ export default function SignIn(){
               <input className="input" value={resetEmail} onChange={e=>setResetEmail(e.target.value)} placeholder="email" style={{ marginTop:12 }} />
               <div style={{ display:'flex', gap:8, justifyContent:'flex-end', marginTop:16 }}>
                 <button className="btn btn-ghost" onClick={()=> setForgot(false)}>Cancel</button>
-                <button className="btn btn-primary" onClick={async()=>{ try{ const r=await api('/api/auth/forgot-password',{method:'POST', body:JSON.stringify({email:resetEmail})}); alert('Reset email sent (dev token: '+(r.data.token||'')+')'); setForgot(false);}catch(e:any){alert(e.message);} }}>Send link</button>
+                <button className="btn btn-primary" onClick={async()=>{ try{ const r=await api('/api/auth/forgot-password',{method:'POST', body:JSON.stringify({email:resetEmail})}); toast.success('Reset email sent', r.data.token? `Dev token: ${r.data.token}`: undefined); setForgot(false);}catch(e:any){toast.error('Could not send reset link', e.message);} }}>Send link</button>
               </div>
             </div>
           </div>
         )}
+      </div>
       </div>
     </div>
   );

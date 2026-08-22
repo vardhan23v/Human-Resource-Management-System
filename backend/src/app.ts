@@ -20,7 +20,16 @@ import auditRoutes from './features/audit/audit.routes';
 const app = express();
 
 app.use(helmet({ crossOriginResourcePolicy: false }));
-app.use(cors({ origin: env.CORS_ORIGIN, credentials: true }));
+app.use(cors({
+  origin: (origin, cb) => {
+    // allow same-origin/no-origin (curl, health checks), any listed origin, or '*'
+    if (!origin || env.CORS_ORIGINS.includes('*') || env.CORS_ORIGINS.includes(origin)) return cb(null, true);
+    // allow Vercel preview deployments of the frontend when the production domain is listed
+    if (env.CORS_ORIGINS.some(o => o.endsWith('.vercel.app')) && /^https:\/\/[a-z0-9-]+\.vercel\.app$/.test(origin)) return cb(null, true);
+    return cb(new Error(`CORS: origin ${origin} not allowed`));
+  },
+  credentials: true,
+}));
 app.use(cookieParser());
 app.use(express.json({ limit: '5mb' }));
 app.use(express.urlencoded({ extended: true }));
@@ -43,8 +52,9 @@ app.use((req,_res,next)=>{
 // static storage
 app.use('/storage', express.static(path.resolve(env.STORAGE_PATH)));
 
-// health
-app.get('/api/health', (_req,res)=> res.json({ status:'ok', time: new Date().toISOString(), version:'2.0.0' }));
+// root landing + health
+app.get('/', (_req,res)=> res.json({ name:'Dayflow HRMS API', version:'2.1.0', health:'/api/health', docs:'https://github.com/vardhan23v/Human-Resource-Management-System' }));
+app.get('/api/health', (_req,res)=> res.json({ status:'ok', time: new Date().toISOString(), version:'2.1.0' }));
 
 // routes
 app.use('/api/auth', authRoutes);

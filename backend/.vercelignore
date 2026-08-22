@@ -1,0 +1,5 @@
+dist
+storage
+src/__tests__
+coverage
+.env

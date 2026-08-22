@@ -8,7 +8,9 @@ export const pool = mysql.createPool({
   password: env.DB_PASSWORD,
   database: env.DB_NAME,
   waitForConnections: true,
-  connectionLimit: 20,
+  // Serverless functions are short-lived; keep the pool small so hosted DBs aren't exhausted.
+  connectionLimit: env.IS_VERCEL ? 5 : 20,
+  ...(env.DB_SSL ? { ssl: { rejectUnauthorized: false } } : {}),
   queueLimit: 0,
   enableKeepAlive: true,
   timezone: '+00:00',
