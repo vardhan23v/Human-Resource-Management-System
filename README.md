@@ -1,21 +1,30 @@
 <div align="center">
 
-![Dayflow — Every workday, perfectly aligned.](docs/banner.png)
-
 # Dayflow HRMS
 
 **Every workday, perfectly aligned.**
 
 A production-grade Human Resource Management System — employee directory, attendance, time off, payroll with PDF payslips, approvals, notifications and audit — built as a TypeScript monorepo and deployed serverless on Vercel.
 
-[![Live demo](https://img.shields.io/badge/live-frontend--iota--two--70.vercel.app-5B5BF6?style=flat-square&logo=vercel&logoColor=white)](https://frontend-iota-two-70.vercel.app)
-[![API](https://img.shields.io/badge/api-dayflow--api.vercel.app-111827?style=flat-square&logo=vercel&logoColor=white)](https://dayflow-api.vercel.app/api/health)
-![Node](https://img.shields.io/badge/node-%E2%89%A520-339933?style=flat-square&logo=node.js&logoColor=white)
-![TypeScript](https://img.shields.io/badge/typescript-strict-3178C6?style=flat-square&logo=typescript&logoColor=white)
-![MySQL](https://img.shields.io/badge/mysql-8.x-4479A1?style=flat-square&logo=mysql&logoColor=white)
-[![CI](https://github.com/vardhan23v/Human-Resource-Management-System/actions/workflows/ci.yml/badge.svg)](https://github.com/vardhan23v/Human-Resource-Management-System/actions/workflows/ci.yml)
-![Tests](https://img.shields.io/badge/tests-24%20unit%20%2B%207%20e2e-0E9F6E?style=flat-square&logo=jest&logoColor=white)
-![Version](https://img.shields.io/badge/version-2.2.0-7C3AED?style=flat-square)
+<!-- status (live data) -->
+[![CI](https://img.shields.io/github/actions/workflow/status/vardhan23v/Human-Resource-Management-System/ci.yml?branch=main&style=flat-square&logo=githubactions&logoColor=white&label=CI)](https://github.com/vardhan23v/Human-Resource-Management-System/actions/workflows/ci.yml)
+[![App](https://img.shields.io/website?url=https%3A%2F%2Ffrontend-iota-two-70.vercel.app&style=flat-square&logo=vercel&logoColor=white&label=app&up_message=online&down_message=offline)](https://frontend-iota-two-70.vercel.app)
+[![API](https://img.shields.io/website?url=https%3A%2F%2Fdayflow-api.vercel.app%2Fapi%2Fhealth&style=flat-square&logo=vercel&logoColor=white&label=api&up_message=healthy&down_message=down)](https://dayflow-api.vercel.app/api/health)
+[![Version](https://img.shields.io/github/package-json/v/vardhan23v/Human-Resource-Management-System?style=flat-square&color=7C3AED&label=version)](package.json)
+[![Last commit](https://img.shields.io/github/last-commit/vardhan23v/Human-Resource-Management-System/main?style=flat-square&color=111827&label=last%20commit)](https://github.com/vardhan23v/Human-Resource-Management-System/commits/main)
+[![Open issues](https://img.shields.io/github/issues/vardhan23v/Human-Resource-Management-System?style=flat-square&color=0E9F6E)](https://github.com/vardhan23v/Human-Resource-Management-System/issues)
+
+<!-- stack -->
+![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178C6?style=flat-square&logo=typescript&logoColor=white)
+![React](https://img.shields.io/badge/React-18-20232A?style=flat-square&logo=react&logoColor=61DAFB)
+![Vite](https://img.shields.io/badge/Vite-5-646CFF?style=flat-square&logo=vite&logoColor=white)
+![Express](https://img.shields.io/badge/Express-4-000000?style=flat-square&logo=express&logoColor=white)
+![MySQL](https://img.shields.io/badge/MySQL-8-4479A1?style=flat-square&logo=mysql&logoColor=white)
+![Node](https://img.shields.io/badge/Node-%E2%89%A5%2020-339933?style=flat-square&logo=node.js&logoColor=white)
+![Jest](https://img.shields.io/badge/Jest-unit%20%2B%20API-C21325?style=flat-square&logo=jest&logoColor=white)
+![Playwright](https://img.shields.io/badge/Playwright-e2e-2EAD33?style=flat-square&logo=playwright&logoColor=white)
+![OpenAPI](https://img.shields.io/badge/OpenAPI-3.0-6BA539?style=flat-square&logo=openapiinitiative&logoColor=white)
+![PWA](https://img.shields.io/badge/PWA-installable-5A0FC8?style=flat-square&logo=pwa&logoColor=white)
 
 [Live demo](#-live-demo) · [Quick start](#-quick-start) · [Architecture](#-architecture) · [API](#-api-reference) · [Domain rules](#-domain-rules) · [Deployment](#-deployment) · [Runbook](#-operations-runbook) · [Contributing](#-contributing)
 
