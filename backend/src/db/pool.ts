@@ -14,6 +14,7 @@ export const pool = mysql.createPool({
   timezone: '+00:00',
   dateStrings: true,
   charset: 'utf8mb4',
+  multipleStatements: true,
 });
 
 // helper to get connection and release automatically after query unless transaction
