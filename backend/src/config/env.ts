@@ -41,4 +41,12 @@ export const env = {
   /** On Vercel the filesystem is read-only except /tmp — files there are ephemeral. */
   STORAGE_PATH: process.env.STORAGE_PATH || (IS_VERCEL ? '/tmp/dayflow-storage' : './storage'),
   EMAIL_FROM: process.env.EMAIL_FROM || 'noreply@dayflow.local',
+  /** Where OAuth callbacks send the browser back to (defaults to the first CORS origin). */
+  FRONTEND_URL: process.env.FRONTEND_URL || (process.env.CORS_ORIGIN || 'http://localhost:5173').split(',')[0].trim(),
+  /** LinkedIn OAuth 2.0 — see README §LinkedIn integration. Leave unset to disable the feature. */
+  LINKEDIN_CLIENT_ID: process.env.LINKEDIN_CLIENT_ID || '',
+  LINKEDIN_CLIENT_SECRET: process.env.LINKEDIN_CLIENT_SECRET || '',
+  LINKEDIN_REDIRECT_URI: process.env.LINKEDIN_REDIRECT_URI || 'http://localhost:4000/api/linkedin/callback',
+  /** Versioned Posts API month (YYYYMM). LinkedIn sunsets versions after ~1 year; bump when they 426. */
+  LINKEDIN_API_VERSION: process.env.LINKEDIN_API_VERSION || '202601',
 };

@@ -12,14 +12,19 @@ let ready: Promise<void> | null = null;
 export function ensureSchema(): Promise<void> {
   if (ready) return ready;
   ready = (async () => {
-    const [rows]: any = await pool.query("SHOW TABLES LIKE 'users'");
-    if (rows.length) return;
-    console.log('[bootstrap] schema missing — applying migrations');
     const dir = path.join(__dirname, '../../migrations');
-    for (const f of fs.readdirSync(dir).filter(x => x.endsWith('.sql')).sort()) {
+    const files = fs.readdirSync(dir).filter(x => x.endsWith('.sql')).sort();
+    const [rows]: any = await pool.query("SHOW TABLES LIKE 'users'");
+    const fresh = rows.length === 0;
+    if (fresh) console.log('[bootstrap] schema missing — applying migrations');
+    for (const f of files) {
+      // 001 creates the base schema (not idempotent) — only on a fresh DB.
+      // Later migrations must be idempotent (CREATE TABLE IF NOT EXISTS …) and are always applied.
+      if (f.startsWith('001') && !fresh) continue;
       await pool.query(fs.readFileSync(path.join(dir, f), 'utf-8'));
-      console.log(`[bootstrap] applied ${f}`);
+      if (fresh || !f.startsWith('001')) console.log(`[bootstrap] applied ${f}`);
     }
+    if (!fresh) return;
     if ((process.env.AUTO_SEED || '').toLowerCase() === 'true') {
       console.log('[bootstrap] seeding demo data');
       const { runSeed } = await import('./seed');

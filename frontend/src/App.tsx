@@ -14,6 +14,7 @@ import Payroll from './pages/Payroll';
 import Settings from './pages/Settings';
 import Notifications from './pages/Notifications';
 import Dashboard from './pages/Dashboard';
+import LinkedInReturn from './pages/LinkedInReturn';
 import { useRipple } from './hooks/useRipple';
 
 export function AppLoader({ label = 'Loading your workspace…' }: { label?: string }) {
@@ -74,6 +75,7 @@ export default function App() {
               <Route path="/settings" element={<Protected roles={['ADMIN']}><Settings /></Protected>} />
               <Route path="/notifications" element={<Protected><Notifications /></Protected>} />
               <Route path="/dashboard" element={<Protected roles={['ADMIN', 'HR']}><Dashboard /></Protected>} />
+              <Route path="/linkedin/return" element={<Protected><LinkedInReturn /></Protected>} />
               <Route path="/" element={<Navigate to="/directory" replace />} />
               <Route path="*" element={<NotFound />} />
             </Routes>

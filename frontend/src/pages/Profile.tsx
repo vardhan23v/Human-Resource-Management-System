@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useSearchParams } from 'react-router-dom';
+import LinkedInCard, { LinkedInLogo } from '../components/LinkedInCard';
 import { api } from '../utils/api';
 import { useReveal } from '../hooks/useReveal';
 import { useToast } from '../components/Toast';
@@ -11,7 +12,8 @@ export default function Profile(){
   const { id } = useParams();
   const { user } = useAuth();
   const [emp, setEmp] = useState<any>(null);
-  const [tab, setTab] = useState<'resume'|'private'|'salary'|'security'>('resume');
+  const [search] = useSearchParams();
+  const [tab, setTab] = useState<'resume'|'private'|'salary'|'security'|'linkedin'>(search.get('tab')==='linkedin' ? 'linkedin' : 'resume');
   const [edit, setEdit] = useState<any>(null);
   const [saving, setSaving] = useState(false);
   const [salary, setSalary] = useState<any>(null);
@@ -88,8 +90,8 @@ export default function Profile(){
       </div>
 
       <div style={{ marginTop:16, display:'flex', gap:8 }} className="tabs">
-        {(['resume','private','salary','security'] as const).map(t=>(
-          <button key={t} className={`tab ${tab===t?'active':''}`} onClick={()=> setTab(t)} style={{ textTransform:'capitalize' }}>{t==='resume'?'Resume':t==='private'?'Private Info':t==='salary'?'Salary Info':'Security'}</button>
+        {([...(['resume','private','salary','security'] as const), ...(isOwn ? (['linkedin'] as const) : [])]).map(t=>(
+          <button key={t} className={`tab ${tab===t?'active':''}`} onClick={()=> setTab(t)} style={{ textTransform:'capitalize', display:'inline-flex', alignItems:'center', gap:6 }}>{t==='resume'?'Resume':t==='private'?'Private Info':t==='salary'?'Salary Info':t==='security'?'Security':<><LinkedInLogo size={14} /> LinkedIn</>}</button>
         ))}
       </div>
 
@@ -192,6 +194,9 @@ export default function Profile(){
         </div>
       )}
 
+      {tab==='linkedin' && isOwn && (
+        <div style={{ marginTop:16 }}><LinkedInCard /></div>
+      )}
       {tab==='security' && (
         <div className="card fade-up" style={{ '--i': 9, marginTop:16, maxWidth:480 } as any}>
           <h3 style={{ marginTop:0 }}>Security</h3>

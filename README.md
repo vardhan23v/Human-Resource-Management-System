@@ -350,6 +350,72 @@ The first request to the API creates the schema (and seeds, if enabled). Check `
 
 ---
 
+## 🔗 LinkedIn integration
+
+Users can connect their own LinkedIn account (Profile → **LinkedIn** tab), see the profile LinkedIn returns for them, and publish posts from Dayflow. Official LinkedIn OAuth 2.0 / REST APIs only — no scraping, no unofficial endpoints, and tokens never leave the server.
+
+```
+LinkedIn OAuth (server-side, CSRF-protected state)
+     ├── Profile information   ← Sign In with LinkedIn using OpenID Connect  (openid profile email → GET /v2/userinfo)
+     │      ├── name, first / last name, picture, email, member id / URN
+     │      └── public profile URL — NOT available (needs r_basicprofile, partner-only) → shown as "not provided"
+     └── Share on LinkedIn      ← w_member_social  (POST /rest/posts)
+            ├── text post
+            ├── article / URL share
+            └── image — not implemented (needs the Images API flow; document before enabling)
+```
+
+### 1. Create the LinkedIn app
+1. https://www.linkedin.com/developers/apps → **Create app** (needs a LinkedIn Page to associate).
+2. **Products** tab → request **Sign In with LinkedIn using OpenID Connect** and **Share on LinkedIn** (both self-serve).
+3. **Auth** tab → copy *Client ID* / *Client Secret*, and add the redirect URLs:
+   - `http://localhost:4000/api/linkedin/callback` (local)
+   - `https://dayflow-api.vercel.app/api/linkedin/callback` (production)
+
+### 2. Environment variables (API)
+
+| Variable | Required | Notes |
+|---|---|---|
+| `LINKEDIN_CLIENT_ID` / `LINKEDIN_CLIENT_SECRET` | yes | From the Auth tab. Unset → the feature shows "not configured" and all routes 503. |
+| `LINKEDIN_REDIRECT_URI` | yes | Must match the Auth tab **exactly** (scheme, host, path). |
+| `FRONTEND_URL` | recommended | Where the callback sends the browser back (`/linkedin/return`). Defaults to the first `CORS_ORIGIN`. |
+| `LINKEDIN_TOKEN_KEY` | optional | 32-byte hex/base64 key for encrypting stored tokens (AES-256-GCM). Defaults to a key derived from `JWT_SECRET`. |
+| `LINKEDIN_API_VERSION` | optional | `YYYYMM` for the versioned Posts API (default `202601`). LinkedIn sunsets versions after ~1 year; a `426` response means bump it. |
+
+Production (pipe values — never paste secrets into chat or commit them):
+```bash
+cd backend
+printf '%s' '<client id>'     | vercel env add LINKEDIN_CLIENT_ID production
+printf '%s' '<client secret>' | vercel env add LINKEDIN_CLIENT_SECRET production
+printf 'https://dayflow-api.vercel.app/api/linkedin/callback' | vercel env add LINKEDIN_REDIRECT_URI production
+printf 'https://frontend-iota-two-70.vercel.app' | vercel env add FRONTEND_URL production
+vercel --prod
+```
+Local: add the same keys to `backend/.env`. The `linkedin_accounts` table is created by `npm run migrate` (migration `002_linkedin.sql`, idempotent) or automatically by the serverless bootstrap.
+
+### 3. Routes
+
+| Method | Path | Auth | Purpose |
+|---|---|---|---|
+| GET | `/api/linkedin/status` | user | `{ configured, connected, profile }` — never includes tokens |
+| GET | `/api/linkedin/connect` | user | Returns the LinkedIn authorization URL (state = 10-min JWT bound to the user) |
+| GET | `/api/linkedin/callback` | public | LinkedIn redirect target → exchanges code, stores profile + encrypted token, redirects to `FRONTEND_URL/linkedin/return?status=…` |
+| POST | `/api/linkedin/disconnect` | user | Best-effort token revoke at LinkedIn, then deletes the row |
+| POST | `/api/linkedin/posts` | user | `{ text (≤3000), url?, title? }` → publishes; returns `{ postUrn, url }` |
+
+Error codes: `LINKEDIN_NOT_CONFIGURED` 503 · `LINKEDIN_NOT_CONNECTED` 400 · `LINKEDIN_INVALID_STATE` 400 · `LINKEDIN_DENIED` (callback) · `LINKEDIN_ALREADY_LINKED` 409 · `LINKEDIN_TOKEN_INVALID` 401 · `LINKEDIN_PERMISSION` 403 · `LINKEDIN_RATE_LIMITED` 429 · `LINKEDIN_API_VERSION` / `LINKEDIN_API_ERROR` 502 · `LINKEDIN_TIMEOUT` 504.
+
+### 4. Testing
+- **Disconnected / unconfigured:** open Profile → LinkedIn with the env vars unset — the card explains it's not configured; with them set it shows *Connect LinkedIn*.
+- **OAuth failure:** hit `/api/linkedin/callback?state=bogus` → redirected to `/linkedin/return?status=error&code=LINKEDIN_INVALID_STATE`; decline on LinkedIn's consent screen → `code=LINKEDIN_DENIED`.
+- **Connected:** after consent you land on the profile's LinkedIn tab with name, picture, URN and permissions; audit log records `LINKEDIN_CONNECT`.
+- **Posting:** the composer publishes a text post; add a URL to test the article share. Errors (expired token, missing scope, rate limit) surface as toasts.
+
+### 5. Limitations
+- Access tokens last 60 days and standard apps get **no refresh token** — the UI shows *Connection expired* with a Reconnect button.
+- Only the authenticated member's own profile is ever read; there is no lookup of other people.
+- The LinkedIn picture URL is a short-lived CDN link — it's re-fetched on every reconnect.
+
 ## 🛠 Operations runbook
 
 | Symptom | Likely cause | Fix |

@@ -17,6 +17,7 @@ import payrollRoutes from './features/payroll/payroll.routes';
 import notificationRoutes from './features/notifications/notifications.routes';
 import reportRoutes from './features/reports/reports.routes';
 import auditRoutes from './features/audit/audit.routes';
+import linkedinRoutes from './features/linkedin/linkedin.routes';
 
 const app = express();
 
@@ -73,6 +74,7 @@ app.use('/api/payroll', payrollRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/audit-logs', auditRoutes);
+app.use('/api/linkedin', linkedinRoutes);
 
 // 404
 app.use('/api', (_req,res)=> res.status(404).json({ error:{ code:'NOT_FOUND', message:'API route not found'}}));
