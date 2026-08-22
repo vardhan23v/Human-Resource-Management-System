@@ -3,6 +3,8 @@ import { useAuth } from '../context/AuthContext';
 import { Link, useNavigate } from 'react-router-dom';
 import { api } from '../utils/api';
 import AuthHero from '../components/AuthHero';
+import Modal from '../components/Modal';
+import PasswordInput from '../components/PasswordInput';
 import { useToast } from '../components/Toast';
 
 export default function SignIn(){
@@ -11,7 +13,6 @@ export default function SignIn(){
   const toast = useToast();
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
-  const [show, setShow] = useState(false);
   const [err, setErr] = useState('');
   const [loading, setLoading] = useState(false);
   const [forgot, setForgot] = useState(false);
@@ -37,10 +38,7 @@ export default function SignIn(){
           </div>
           <div>
             <label className="label">Password</label>
-            <div style={{ position:'relative' }}>
-              <input className="input" type={show?'text':'password'} value={password} onChange={e=>setPassword(e.target.value)} placeholder="••••••••" required style={{ paddingRight:40 }} />
-              <button type="button" onClick={()=> setShow(v=>!v)} style={{ position:'absolute', right:10, top:10, background:'transparent', border:'none', cursor:'pointer', color:'var(--neutral-500)' }}>{show?'🙈':'👁️'}</button>
-            </div>
+            <PasswordInput value={password} onChange={setPassword} autoComplete="current-password" />
             <div style={{ textAlign:'right', marginTop:6 }}>
               <a href="#" onClick={e=>{e.preventDefault(); setForgot(true);}} style={{ fontSize:12, color:'var(--accent)', textDecoration:'none', fontWeight:600 }}>Forgot password?</a>
             </div>
@@ -52,9 +50,8 @@ export default function SignIn(){
           <strong>Demo logins</strong> (Password123):<br/>Admin: admin@dayflow.local / OIARME20220001<br/>HR: hr@dayflow.local<br/>Employee: john.doe@dayflow.local
         </div>
         {forgot && (
-          <div className="modal-backdrop" onClick={()=> setForgot(false)}>
-            <div className="modal" onClick={e=>e.stopPropagation()}>
-              <h3 style={{ marginTop:0 }}>Reset password</h3>
+          <Modal open onClose={()=> setForgot(false)} title="Reset password">
+            <div>
               <p style={{ fontSize:13, color:'var(--neutral-500)' }}>Enter your email — we'll send a reset link.</p>
               <input className="input" value={resetEmail} onChange={e=>setResetEmail(e.target.value)} placeholder="email" style={{ marginTop:12 }} />
               <div style={{ display:'flex', gap:8, justifyContent:'flex-end', marginTop:16 }}>
@@ -62,7 +59,7 @@ export default function SignIn(){
                 <button className="btn btn-primary" onClick={async()=>{ try{ const r=await api('/api/auth/forgot-password',{method:'POST', body:JSON.stringify({email:resetEmail})}); toast.success('Reset email sent', r.data.token? `Dev token: ${r.data.token}`: undefined); setForgot(false);}catch(e:any){toast.error('Could not send reset link', e.message);} }}>Send link</button>
               </div>
             </div>
-          </div>
+          </Modal>
         )}
       </div>
       </div>

@@ -6,6 +6,8 @@ import { useReveal } from '../hooks/useReveal';
 import PageHeader from '../components/PageHeader';
 import { useToast } from '../components/Toast';
 import { useAuth } from '../context/AuthContext';
+import AttendanceHeatmap from '../components/AttendanceHeatmap';
+import Modal from '../components/Modal';
 
 export default function Attendance(){
   const toast = useToast();
@@ -20,6 +22,7 @@ export default function Attendance(){
   const [search, setSearch] = useState('');
   const [regularizations, setRegularizations] = useState<any[]>([]);
   const [showReg, setShowReg] = useState(false);
+  const [cal, setCal] = useState<any[]>([]);
   const [regForm, setRegForm] = useState({ date: new Date().toISOString().slice(0,10), reason:'', requestedCheckIn:'09:00', requestedCheckOut:'18:00' });
 
   async function loadAdmin(){
@@ -36,8 +39,8 @@ export default function Attendance(){
       const r=await api(`/api/attendance?employeeId=${empId}&month=${month}&limit=100`);
       setEmpRows(r.data||[]);
       setSummary(r.summary||null);
-      const cal=await api(`/api/attendance/calendar?employeeId=${empId}&month=${month}`);
-      // could use cal for heatmap
+      const c=await api(`/api/attendance/calendar?employeeId=${empId}&month=${month}`);
+      setCal(c.data||[]);
     }catch{}
   }
   async function loadRegs(){ try{ const r=await api('/api/attendance/regularizations/list'); setRegularizations(r.data||[]); }catch{} }
@@ -112,6 +115,10 @@ export default function Attendance(){
             )}
             <button className="btn btn-primary btn-sm btn-press" onClick={()=> setShowReg(true)}>Request Correction</button>
           </div>
+          <div className="card reveal" style={{ marginBottom:16, maxWidth:520 }}>
+            <h4 style={{ margin:'0 0 12px' }}>Month at a glance</h4>
+            <AttendanceHeatmap month={month} rows={cal} />
+          </div>
           <div className="table-wrap reveal">
             <table>
               <thead><tr><th>Date</th><th>Check In</th><th>Check Out</th><th>Work Hours</th><th>Extra Hours</th></tr></thead>
@@ -139,9 +146,8 @@ export default function Attendance(){
       )}
 
       {showReg && (
-        <div className="modal-backdrop" onClick={()=> setShowReg(false)}>
-          <div className="modal" onClick={e=>e.stopPropagation()}>
-            <h3 style={{ marginTop:0 }}>Request Regularization</h3>
+        <Modal open onClose={()=> setShowReg(false)} title="Request regularization">
+          <div>
             <div style={{ display:'flex', flexDirection:'column', gap:10, marginTop:12 }}>
               <div><label className="label">Date</label><input type="date" className="input" value={regForm.date} onChange={e=> setRegForm({...regForm, date:e.target.value})} /></div>
               <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
@@ -160,7 +166,7 @@ export default function Attendance(){
               }}>Submit</button>
             </div>
           </div>
-        </div>
+        </Modal>
       )}
     </div>
   );

@@ -2,12 +2,12 @@ import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { Link, useNavigate } from 'react-router-dom';
 import AuthHero from '../components/AuthHero';
+import PasswordInput from '../components/PasswordInput';
 
 export default function SignUp(){
   const { signup } = useAuth();
   const nav = useNavigate();
   const [form, setForm] = useState({ companyName:'', name:'', email:'', password:'', confirmPassword:'' });
-  const [show, setShow] = useState(false);
   const [err, setErr] = useState('');
   const [logoPreview, setLogoPreview] = useState<string|null>(null);
   const [loading, setLoading] = useState(false);
@@ -45,12 +45,9 @@ export default function SignUp(){
           <div><label className="label">Email</label><input className="input" type="email" value={form.email} onChange={e=>setForm({...form, email:e.target.value})} placeholder="admin@company.com" required /></div>
           <div>
             <label className="label">Password</label>
-            <div style={{ position:'relative' }}>
-              <input className="input" type={show?'text':'password'} value={form.password} onChange={e=>setForm({...form, password:e.target.value})} placeholder="Min 8 chars, upper/lower/digit" required style={{ paddingRight:40 }} />
-              <button type="button" onClick={()=> setShow(v=>!v)} style={{ position:'absolute', right:10, top:10, background:'transparent', border:'none', cursor:'pointer' }}>{show?'🙈':'👁️'}</button>
-            </div>
+            <PasswordInput value={form.password} onChange={v=> setForm({...form, password:v})} placeholder="Min 8 chars, upper/lower/digit" autoComplete="new-password" meter />
           </div>
-          <div><label className="label">Confirm Password</label><input className="input" type={show?'text':'password'} value={form.confirmPassword} onChange={e=>setForm({...form, confirmPassword:e.target.value})} required /></div>
+          <div><label className="label">Confirm Password</label><PasswordInput value={form.confirmPassword} onChange={v=> setForm({...form, confirmPassword:v})} autoComplete="new-password" /></div>
           <button className="btn btn-primary btn-press" disabled={loading} style={{ width:'100%', justifyContent:'center', marginTop:8 }}>{loading?'Creating…':'Sign Up'}</button>
         </form>
         <p style={{ textAlign:'center', fontSize:13, marginTop:16, color:'var(--neutral-500)' }}>Already have an account? <Link to="/signin" style={{ color:'var(--accent)', fontWeight:700, textDecoration:'none' }}>Sign in</Link></p>

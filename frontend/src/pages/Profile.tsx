@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import LinkedInCard, { LinkedInLogo } from '../components/LinkedInCard';
+import OnboardingCard from '../components/OnboardingCard';
+import PasswordInput from '../components/PasswordInput';
 import { api } from '../utils/api';
 import Avatar from '../components/Avatar';
 import { useReveal } from '../hooks/useReveal';
@@ -14,7 +16,7 @@ export default function Profile(){
   const { user } = useAuth();
   const [emp, setEmp] = useState<any>(null);
   const [search] = useSearchParams();
-  const [tab, setTab] = useState<'resume'|'private'|'salary'|'security'|'linkedin'>(search.get('tab')==='linkedin' ? 'linkedin' : 'resume');
+  const [tab, setTab] = useState<'resume'|'private'|'salary'|'security'|'linkedin'|'onboarding'>((['linkedin','onboarding','private','security','salary'].includes(search.get('tab')||'') ? search.get('tab') : 'resume') as any);
   const [edit, setEdit] = useState<any>(null);
   const [saving, setSaving] = useState(false);
   const [salary, setSalary] = useState<any>(null);
@@ -76,6 +78,7 @@ export default function Profile(){
         <div style={{ flex:1 }}>
           <div style={{ display:'flex', alignItems:'center', gap:10 }}>
             <h2 style={{ margin:0 }}>{emp.name}</h2>
+            {user && ['ADMIN','HR'].includes(user.role) && <button className="btn btn-ghost btn-sm" style={{ marginTop:6 }} onClick={async()=>{ try{ const res=await fetch(`${((import.meta as any).env?.VITE_API_URL||'').replace(/\/+$/,'')}/api/employees/${id}/offer-letter`,{ headers:{ Authorization:`Bearer ${localStorage.getItem('accessToken')}` } }); if(!res.ok) throw new Error('Could not generate letter'); const b=await res.blob(); const a=document.createElement('a'); a.href=URL.createObjectURL(b); a.download=`offer-letter-${emp.name}.pdf`; a.click(); }catch(e:any){ toast.error(e.message); } }}>Offer letter PDF</button>}
             <span className="badge badge-success">{emp.lifecycle_state}</span>
           </div>
           <div style={{ display:'flex', gap:18, marginTop:6, fontSize:13, color:'var(--neutral-500)', flexWrap:'wrap' }}>
@@ -91,8 +94,8 @@ export default function Profile(){
       </div>
 
       <div style={{ marginTop:16, display:'flex', gap:8 }} className="tabs">
-        {([...(['resume','private','salary','security'] as const), ...(isOwn ? (['linkedin'] as const) : [])]).map(t=>(
-          <button key={t} className={`tab ${tab===t?'active':''}`} onClick={()=> setTab(t)} style={{ textTransform:'capitalize', display:'inline-flex', alignItems:'center', gap:6 }}>{t==='resume'?'Resume':t==='private'?'Private Info':t==='salary'?'Salary Info':t==='security'?'Security':<><LinkedInLogo size={14} /> LinkedIn</>}</button>
+        {([...(['resume','private','salary','security'] as const), ...(isOwn ? (['onboarding','linkedin'] as const) : [])]).map(t=>(
+          <button key={t} className={`tab ${tab===t?'active':''}`} onClick={()=> setTab(t)} style={{ textTransform:'capitalize', display:'inline-flex', alignItems:'center', gap:6 }}>{t==='resume'?'Resume':t==='private'?'Private Info':t==='salary'?'Salary Info':t==='security'?'Security':t==='onboarding'?'Onboarding':<><LinkedInLogo size={14} /> LinkedIn</>}</button>
         ))}
       </div>
 
@@ -195,6 +198,9 @@ export default function Profile(){
         </div>
       )}
 
+      {tab==='onboarding' && isOwn && (
+        <div style={{ marginTop:16, maxWidth:640 }}><OnboardingCard onGoTo={(t)=> setTab(t as any)} /></div>
+      )}
       {tab==='linkedin' && isOwn && (
         <div style={{ marginTop:16 }}><LinkedInCard /></div>
       )}
@@ -212,8 +218,8 @@ function ChangePassword(){
   const [cur, setCur]=useState(''), [nxt,setNxt]=useState(''), [msg,setMsg]=useState('');
   return (
     <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
-      <div><label className="label">Current Password</label><input type="password" className="input" value={cur} onChange={e=>setCur(e.target.value)} /></div>
-      <div><label className="label">New Password</label><input type="password" className="input" value={nxt} onChange={e=>setNxt(e.target.value)} /></div>
+      <div><label className="label">Current password</label><PasswordInput value={cur} onChange={setCur} autoComplete="current-password" /></div>
+      <div><label className="label">New password</label><PasswordInput value={nxt} onChange={setNxt} autoComplete="new-password" meter /></div>
       {msg && <div style={{ fontSize:13, color: msg.includes('success')? 'var(--success)':'var(--danger)' }}>{msg}</div>}
       <button className="btn btn-primary btn-press" onClick={async()=>{
         try{ await api('/api/auth/change-password',{method:'POST', body:JSON.stringify({currentPassword:cur, newPassword:nxt})}); setMsg('Password changed successfully'); }catch(e:any){ setMsg(e.message); }

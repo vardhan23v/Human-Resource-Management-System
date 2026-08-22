@@ -3,6 +3,8 @@ import { api } from '../utils/api';
 import EmptyState from '../components/EmptyState';
 import Avatar from '../components/Avatar';
 import PageHeader from '../components/PageHeader';
+import Modal from '../components/Modal';
+import { useSearchParams } from 'react-router-dom';
 import { useReveal } from '../hooks/useReveal';
 import { useToast } from '../components/Toast';
 import { useAuth } from '../context/AuthContext';
@@ -17,7 +19,9 @@ export default function Leave(){
   const [balances, setBalances] = useState<any[]>([]);
   const [leaveTypes, setLeaveTypes] = useState<any[]>([]);
   const [holidays, setHolidays] = useState<any[]>([]);
-  const [showNew, setShowNew] = useState(false);
+  const [sp, setSp] = useSearchParams();
+  const [showNew, setShowNew] = useState(sp.get('new')==='1');
+  useEffect(()=>{ if(sp.get('new')==='1'){ setShowNew(true); sp.delete('new'); setSp(sp, { replace:true }); } },[sp]);
   const [form, setForm] = useState({ leaveTypeId:'', startDate:'', endDate:'', halfDay:false, remarks:'', attachmentUrl:'' });
   const [computedDays, setComputedDays] = useState<number| null>(null);
   const [search, setSearch] = useState('');
@@ -161,9 +165,8 @@ export default function Leave(){
       )}
 
       {showNew && (
-        <div className="modal-backdrop" onClick={()=> setShowNew(false)}>
-          <div className="modal" onClick={e=>e.stopPropagation()} style={{ width:520 }}>
-            <h3 style={{ marginTop:0 }}>New Time-Off Request</h3>
+        <Modal open onClose={()=> setShowNew(false)} title="New time-off request" width={520}>
+          <div>
             <div style={{ display:'flex', flexDirection:'column', gap:12, marginTop:12 }}>
               <div><label className="label">Time-off Type</label>
                 <select className="input" value={form.leaveTypeId} onChange={e=> setForm({...form, leaveTypeId:e.target.value})}>
@@ -189,7 +192,7 @@ export default function Leave(){
               }}>Submit</button>
             </div>
           </div>
-        </div>
+        </Modal>
       )}
     </div>
   );

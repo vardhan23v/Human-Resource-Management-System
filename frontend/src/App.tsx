@@ -16,6 +16,14 @@ import Settings from './pages/Settings';
 import Notifications from './pages/Notifications';
 import Dashboard from './pages/Dashboard';
 import LinkedInReturn from './pages/LinkedInReturn';
+import Reports from './pages/Reports';
+import Team from './pages/Team';
+import CommandPalette from './components/CommandPalette';
+import ShortcutsHelp from './components/ShortcutsHelp';
+import { useShortcuts } from './hooks/useShortcuts';
+import { useToast } from './components/Toast';
+import { api } from './utils/api';
+import { useState, useCallback, useMemo } from 'react';
 import { useRipple } from './hooks/useRipple';
 import { useTheme } from './hooks/useTheme';
 import ThemeToggle from './components/ThemeToggle';
@@ -57,15 +65,29 @@ function NotFound() {
   );
 }
 
+/** Keyboard shortcuts + help sheet; only active when signed in. */
+function Shortcuts() {
+  const { user } = useAuth(); const toast = useToast(); const { toggle } = useTheme();
+  const [help, setHelp] = useState(false);
+  const checkIn = useCallback(async () => { try { const t = await api('/api/attendance/today'); const open = t.data && t.data.check_in && !t.data.check_out; await api(open ? '/api/attendance/check-out' : '/api/attendance/check-in', { method: 'POST' }); toast.success(open ? 'Checked out' : 'Checked in'); } catch (e: any) { toast.error(e.message); } }, [toast]);
+  const handlers = useMemo(() => ({ checkIn, theme: toggle, help: () => setHelp(true) }), [checkIn, toggle]);
+  useShortcuts(handlers);
+  if (!user) return null;
+  return <ShortcutsHelp open={help} onClose={() => setHelp(false)} />;
+}
+
 function Layout({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
   useRipple();
   useTheme();
   return (
     <div className="app-shell">
+      <a href="#main" className="skip-link">Skip to content</a>
       {user && <Header />}
+      {user && <CommandPalette />}
+      <Shortcuts />
       {!user && <div style={{ position: 'fixed', top: 16, right: 16, zIndex: 45 }}><ThemeToggle /></div>}
-      <PageTransition>{children}</PageTransition>
+      <main id="main"><PageTransition>{children}</PageTransition></main>
       {user && <Footer />}
     </div>
   );
@@ -89,6 +111,8 @@ export default function App() {
               <Route path="/settings" element={<Protected roles={['ADMIN']}><Settings /></Protected>} />
               <Route path="/notifications" element={<Protected><Notifications /></Protected>} />
               <Route path="/dashboard" element={<Protected roles={['ADMIN', 'HR']}><Dashboard /></Protected>} />
+              <Route path="/reports" element={<Protected roles={['ADMIN', 'HR', 'MANAGER']}><Reports /></Protected>} />
+              <Route path="/team" element={<Protected roles={['ADMIN', 'HR', 'MANAGER']}><Team /></Protected>} />
               <Route path="/linkedin/return" element={<Protected><LinkedInReturn /></Protected>} />
               <Route path="/" element={<Navigate to="/directory" replace />} />
               <Route path="*" element={<NotFound />} />

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { api } from '../utils/api';
+import { useAuth } from '../context/AuthContext';
 import { useReveal } from '../hooks/useReveal';
 import PageHeader from '../components/PageHeader';
 import { useToast } from '../components/Toast';
@@ -21,6 +22,8 @@ export default function Settings(){
     const t=await api('/api/leave/types');
     setTypes(t.data||[]);
   }
+  const { user } = useAuth();
+  const [brand, setBrand] = useState({ name: user?.companyName||'', logoUrl: user?.companyLogo||'' });
   useEffect(()=>{ load(); },[]);
 
   if(!settings) return <div className="container" style={{ paddingTop:24 }}><div className="skeleton" style={{ height:300 }} /></div>;
@@ -28,6 +31,16 @@ export default function Settings(){
   return (
     <div className="container" style={{ paddingTop:24, paddingBottom:40 }}>
       <PageHeader title="Organisation settings" subtitle="Work hours, holidays and leave policies for your company." />
+      <div className="card fade-up" style={{ marginBottom:16, '--i': 0 } as any}>
+        <h3 style={{ marginTop:0 }}>Branding</h3>
+        <div style={{ display:'flex', gap:16, alignItems:'center', flexWrap:'wrap' }}>
+          <div style={{ width:64, height:64, borderRadius:14, background:'var(--surface-2)', border:'1px dashed var(--neutral-200)', display:'flex', alignItems:'center', justifyContent:'center', overflow:'hidden' }}>{brand.logoUrl ? <img src={brand.logoUrl} alt="" style={{ width:'100%', height:'100%', objectFit:'cover' }} /> : <span style={{ color:'var(--neutral-400)', fontSize:22 }}>🏢</span>}</div>
+          <div style={{ flex:1, minWidth:220 }}><label className="label">Company name</label><input className="input" value={brand.name} onChange={e=> setBrand({...brand, name:e.target.value})} /></div>
+          <label className="btn btn-ghost" style={{ cursor:'pointer' }}>Upload logo<input type="file" accept="image/*" hidden onChange={e=>{ const f=e.target.files?.[0]; if(!f) return; if(f.size>1_000_000) return toast.error('Logo must be under 1 MB'); const r=new FileReader(); r.onload=()=> setBrand({...brand, logoUrl: r.result as string}); r.readAsDataURL(f); }} /></label>
+          {brand.logoUrl && <button className="btn btn-ghost" onClick={()=> setBrand({...brand, logoUrl:''})}>Remove</button>}
+          <button className="btn btn-primary btn-press" onClick={async()=>{ try{ await api('/api/org-settings/company',{method:'PATCH', body:JSON.stringify({ name:brand.name, logoUrl:brand.logoUrl||null })}); toast.success('Branding saved','Shown in the header after your next sign-in.'); }catch(e:any){ toast.error(e.message); } }}>Save branding</button>
+        </div>
+      </div>
       <div className="grid-2">
         <div className="card fade-up" style={{ '--i': 1 } as any}>
           <h3 style={{ marginTop:0 }}>General</h3>

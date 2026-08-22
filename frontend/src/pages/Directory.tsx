@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { api } from '../utils/api';
 import Avatar from '../components/Avatar';
+import Modal from '../components/Modal';
+import CsvImportModal from '../components/CsvImportModal';
 import { useToast } from '../components/Toast';
 import { useAuth } from '../context/AuthContext';
 import { Link, useNavigate } from 'react-router-dom';
@@ -15,6 +17,7 @@ export default function Directory(){
   const [checkStatus, setCheckStatus] = useState<any>(null);
   const [liveSeconds, setLiveSeconds] = useState(0);
   const [showNew, setShowNew] = useState(false);
+  const [showImport, setShowImport] = useState(false);
   const [newForm, setNewForm] = useState({ firstName:'', lastName:'', email:'', departmentId:'', designation:'', dateOfJoining:new Date().toISOString().slice(0,10), role:'EMPLOYEE' });
   const [departments, setDepartments] = useState<any[]>([]);
   const [stats, setStats] = useState<any>(null);
@@ -78,7 +81,7 @@ export default function Directory(){
         </div>
         <div style={{ display:'flex', gap:10, alignItems:'center' }}>
           <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search employees..." className="input" style={{ width:260 }} />
-          {user && ['ADMIN','HR'].includes(user.role) && <button className="btn btn-primary btn-press" onClick={()=> setShowNew(true)}>+ NEW</button>}
+          {user && ['ADMIN','HR'].includes(user.role) && <><button className="btn btn-ghost" onClick={()=> setShowImport(true)}>Import CSV</button><button className="btn btn-primary btn-press" onClick={()=> setShowNew(true)}>+ New employee</button></>}
         </div>
       </div>
 
@@ -112,9 +115,8 @@ export default function Directory(){
       )}
 
       {showNew && (
-        <div className="modal-backdrop" onClick={()=> setShowNew(false)}>
-          <div className="modal" onClick={e=>e.stopPropagation()} style={{ width:560 }}>
-            <h3 style={{ marginTop:0 }}>Add Employee</h3>
+        <Modal open onClose={()=> setShowNew(false)} title="Add employee" width={560}>
+          <div>
             <p style={{ fontSize:13, color:'var(--neutral-500)', marginTop:4 }}>Login ID & temp password auto-generated & emailed.</p>
             <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12, marginTop:16 }}>
               <div><label className="label">First Name</label><input className="input" value={newForm.firstName} onChange={e=> setNewForm({...newForm, firstName:e.target.value})} /></div>
@@ -144,8 +146,9 @@ export default function Directory(){
               }}>Create</button>
             </div>
           </div>
-        </div>
+        </Modal>
       )}
+      <CsvImportModal open={showImport} onClose={()=> setShowImport(false)} onDone={()=> load()} />
     </div>
   );
 }
