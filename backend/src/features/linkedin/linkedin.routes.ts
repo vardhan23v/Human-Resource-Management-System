@@ -1,4 +1,6 @@
 import { Router } from 'express';
+import { validate } from '../../middleware/validate';
+import { linkedinPostSchema } from '../../utils/schemas';
 import { authMiddleware } from '../../middleware/auth';
 import { auditLog } from '../../middleware/audit';
 import { env } from '../../config/env';
@@ -56,7 +58,7 @@ router.post('/disconnect', async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
-router.post('/posts', async (req, res, next) => {
+router.post('/posts', validate(linkedinPostSchema), async (req, res, next) => {
   try {
     const result = await createPost(req.user!.id, { text: req.body?.text, url: req.body?.url, title: req.body?.title });
     await auditLog(req, 'LINKEDIN_POST', 'linkedin_posts', result.postUrn || undefined, null, { hasUrl: !!req.body?.url, length: String(req.body?.text || '').length });

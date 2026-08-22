@@ -49,4 +49,20 @@ export const env = {
   LINKEDIN_REDIRECT_URI: process.env.LINKEDIN_REDIRECT_URI || 'http://localhost:4000/api/linkedin/callback',
   /** Versioned Posts API month (YYYYMM). LinkedIn sunsets versions after ~1 year; bump when they 426. */
   LINKEDIN_API_VERSION: process.env.LINKEDIN_API_VERSION || '202601',
+  APP_VERSION: '2.2.0',
+  /** File storage: local (default) or s3 (AWS S3 / Cloudflare R2 / MinIO). */
+  STORAGE_DRIVER: (process.env.STORAGE_DRIVER || 'local') as 'local' | 's3',
+  S3_BUCKET: process.env.S3_BUCKET || '',
+  S3_REGION: process.env.S3_REGION || 'auto',
+  S3_ENDPOINT: process.env.S3_ENDPOINT || '',
+  S3_ACCESS_KEY_ID: process.env.S3_ACCESS_KEY_ID || '',
+  S3_SECRET_ACCESS_KEY: process.env.S3_SECRET_ACCESS_KEY || '',
+  /** Email: Resend API key, or an SMTP URL (smtp://user:pass@host:587). Neither → log only. */
+  RESEND_API_KEY: process.env.RESEND_API_KEY || '',
+  SMTP_URL: process.env.SMTP_URL || '',
+  /** Distributed rate limiting via Upstash Redis REST. */
+  UPSTASH_REDIS_REST_URL: process.env.UPSTASH_REDIS_REST_URL || '',
+  UPSTASH_REDIS_REST_TOKEN: process.env.UPSTASH_REDIS_REST_TOKEN || '',
+  /** Error monitoring. */
+  SENTRY_DSN: process.env.SENTRY_DSN || '',
 };

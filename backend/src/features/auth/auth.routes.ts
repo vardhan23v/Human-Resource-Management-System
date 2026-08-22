@@ -1,4 +1,6 @@
 import { Router } from 'express';
+import { validate } from '../../middleware/validate';
+import { loginSchema, signupSchema } from '../../utils/schemas';
 import { signupCompany, login, refresh, logout, forgotPassword, resetPassword, changePassword, getMe, createEmployee } from './auth.service';
 import { authMiddleware, requireRole } from '../../middleware/auth';
 import { BadRequestError } from '../../utils/errors';
@@ -7,7 +9,7 @@ import { auditLog } from '../../middleware/audit';
 const router = Router();
 
 // POST /api/auth/signup — company registration (first admin)
-router.post('/signup', async (req, res, next) => {
+router.post('/signup', validate(signupSchema), async (req, res, next) => {
   try {
     const { companyName, name, email, password, confirmPassword, logoUrl } = req.body;
     if (!companyName || !name || !email || !password) throw new BadRequestError('Missing required fields');
@@ -22,7 +24,7 @@ router.post('/signup', async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
-router.post('/login', async (req, res, next) => {
+router.post('/login', validate(loginSchema), async (req, res, next) => {
   try {
     const { identifier, email, loginId, password } = req.body;
     const id = identifier || email || loginId;

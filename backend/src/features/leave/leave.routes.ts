@@ -1,4 +1,6 @@
 import { Router } from 'express';
+import { validate } from '../../middleware/validate';
+import { leaveRequestSchema } from '../../utils/schemas';
 import { authMiddleware, requireRole } from '../../middleware/auth';
 import { listLeaveTypes, createLeaveType, updateLeaveType, getBalances, applyLeave, listLeaveRequests, decideLeave, cancelLeave, getLeaveCalendar, ensureBalances } from './leave.service';
 import { auditLog } from '../../middleware/audit';
@@ -12,7 +14,7 @@ router.post('/types', requireRole('ADMIN'), async(req,res,next)=>{ try{ const t=
 router.patch('/types/:id', requireRole('ADMIN'), async(req,res,next)=>{ try{ const r=await updateLeaveType((req as any).user.companyId, req.params.id, req.body); res.json({ data:r}); }catch(e){next(e);} });
 
 router.get('/balances', async(req,res,next)=>{ try{ const empId= req.query.employeeId as string || (req as any).user.employeeId; const year= req.query.year? parseInt(req.query.year as string,10): new Date().getFullYear(); await ensureBalances(empId, (req as any).user.companyId, year); const rows=await getBalances(empId, year); res.json({ data:rows}); }catch(e){next(e);} });
-router.post('/requests', async(req,res,next)=>{ try{ const r=await applyLeave((req as any).user, req.body); await auditLog(req as any,'APPLY_LEAVE','LeaveRequest', r.id); // notify approvers (in-app)
+router.post('/requests', validate(leaveRequestSchema), async(req,res,next)=>{ try{ const r=await applyLeave((req as any).user, req.body); await auditLog(req as any,'APPLY_LEAVE','LeaveRequest', r.id); // notify approvers (in-app)
   try{
     // create notification for HR/Admins
     const [hrs]:any=await pool.execute('SELECT id FROM users WHERE company_id=? AND role IN ("HR","ADMIN")',[(req as any).user.companyId]);

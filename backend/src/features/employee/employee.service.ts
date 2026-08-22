@@ -1,5 +1,6 @@
 import { pool } from '../../db/pool';
 import { v4 as uuid } from 'uuid';
+import { storage } from '../../utils/storage';
 import { NotFoundError, ForbiddenError, BadRequestError } from '../../utils/errors';
 import { paginationParams } from '../../utils/helpers';
 
@@ -139,10 +140,12 @@ export async function uploadDocument(actor: any, employeeId: string, file: Expre
   // self or HR/Admin can upload
   if (actor.employeeId !== employeeId && !['ADMIN','HR','MANAGER'].includes(actor.role)) throw new ForbiddenError('Not allowed');
   const id = uuid();
-  const storagePath = file.path;
-  await pool.execute('INSERT INTO employee_documents (id, employee_id, file_name, original_name, mime_type, size_bytes, storage_path, category, uploaded_by) VALUES (?,?,?,?,?,?,?,?,?)',
-    [id, employeeId, file.filename, file.originalname, file.mimetype, file.size, storagePath, category || null, actor.id]);
-  return { id, file_name: file.filename };
+  const ext = (file.originalname.match(/\.[a-z0-9]+$/i) || [''])[0].toLowerCase();
+  const key = `uploads/${employeeId}/${id}${ext}`;
+  await storage.put(key, file.buffer, file.mimetype);
+  await pool.execute('INSERT INTO employee_documents (id, employee_id, file_name, original_name, mime_type, size_bytes, storage_path, storage_key, category, uploaded_by) VALUES (?,?,?,?,?,?,?,?,?,?)',
+    [id, employeeId, `${id}${ext}`, file.originalname, file.mimetype, file.size, key, key, category || null, actor.id]);
+  return { id, file_name: `${id}${ext}` };
 }
 
 export async function addSkill(actor: any, employeeId: string, name: string) {

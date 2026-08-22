@@ -1,25 +1,13 @@
 import { Router } from 'express';
 import multer from 'multer';
-import path from 'path';
 import { authMiddleware, requireRole } from '../../middleware/auth';
 import { listEmployees, getEmployee, updateEmployee, uploadDocument, addSkill, addCertification, deleteSkill, deleteCertification, listDepartments, createDepartment } from './employee.service';
 import { auditLog } from '../../middleware/audit';
-import { env } from '../../config/env';
-import fs from 'fs';
+import { storage, legacyKey } from '../../utils/storage';
 
 const router = Router();
-const storage = multer.diskStorage({
-  destination: (_req, _file, cb) => {
-    const dir = path.join(env.STORAGE_PATH, 'uploads');
-    fs.mkdirSync(dir, { recursive: true });
-    cb(null, dir);
-  },
-  filename: (_req, file, cb) => {
-    const ext = path.extname(file.originalname);
-    cb(null, Date.now() + '-' + Math.round(Math.random()*1e9) + ext);
-  }
-});
-const upload = multer({ storage, limits: { fileSize: 5*1024*1024 } });
+// Files are buffered in memory (5 MB cap) and handed to the storage adapter (local disk or S3/R2).
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5*1024*1024 } });
 
 router.use(authMiddleware);
 
@@ -75,7 +63,11 @@ router.get('/:id/documents/:docId/download', async (req, res, next) => {
     const [rows]: any = await (await import('../../db/pool')).pool.execute('SELECT * FROM employee_documents WHERE id=? AND employee_id=?', [req.params.docId, req.params.id]);
     if (!rows.length) return res.status(404).json({ error: { code:'NOT_FOUND', message:'Document not found'}});
     const doc = rows[0];
-    res.download(doc.storage_path, doc.original_name);
+    const file = await storage.get(doc.storage_key || legacyKey(doc.storage_path));
+    if (!file) return res.status(404).json({ error: { code:'NOT_FOUND', message:'File is no longer available'}});
+    res.setHeader('Content-Type', doc.mime_type || file.mime || 'application/octet-stream');
+    res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(doc.original_name)}"`);
+    res.send(file.body);
   } catch (e) { next(e); }
 });
 

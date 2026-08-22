@@ -6,6 +6,14 @@ import path from 'path';
 import { env } from './config/env';
 import { errorHandler } from './middleware/errorHandler';
 import { ensureSchema } from './db/bootstrap';
+import { initSentry } from './utils/observability';
+import { storageDriverName } from './utils/storage';
+import { mailDriverName } from './utils/mailer';
+import { rateLimitDriverName } from './middleware/rateLimit';
+import crypto from 'crypto';
+import { openapi, docsHtml } from './docs/openapi';
+
+initSentry();
 
 import authRoutes from './features/auth/auth.routes';
 import employeeRoutes from './features/employee/employee.routes';
@@ -37,17 +45,16 @@ app.use(express.json({ limit: '5mb' }));
 app.use(express.urlencoded({ extended: true }));
 
 // request logging with correlation
-app.use((req,_res,next)=>{
+app.use((req,res,next)=>{
   const start=Date.now();
-  const id=Math.random().toString(36).slice(2,8);
+  // honour an upstream id (Vercel / proxies) so logs can be correlated end-to-end
+  const id = (req.headers['x-request-id'] as string) || crypto.randomBytes(6).toString('hex');
   (req as any).correlationId=id;
-  console.log(`[${id}] ${req.method} ${req.url}`);
-  const origEnd = _res.end.bind(_res);
-  // @ts-ignore
-  _res.end = (...args:any[])=> {
-    console.log(`[${id}] -> ${_res.statusCode} ${Date.now()-start}ms`);
-    return origEnd(...args);
-  };
+  res.setHeader('X-Request-Id', id);
+  res.on('finish', ()=> {
+    if (req.url === '/api/health') return;
+    console.log(JSON.stringify({ level:'info', requestId:id, method:req.method, url:req.originalUrl, status:res.statusCode, ms:Date.now()-start, user:(req as any).user?.id }));
+  });
   next();
 });
 
@@ -60,8 +67,12 @@ if ((process.env.AUTO_MIGRATE || '').toLowerCase() === 'true') {
 }
 
 // root landing + health
-app.get('/', (_req,res)=> res.json({ name:'Dayflow HRMS API', version:'2.1.0', health:'/api/health', docs:'https://github.com/vardhan23v/Human-Resource-Management-System' }));
-app.get('/api/health', (_req,res)=> res.json({ status:'ok', time: new Date().toISOString(), version:'2.1.0', db: { host: env.DB_HOST, port: env.DB_PORT, name: env.DB_NAME, ssl: env.DB_SSL, fromUrl: !!process.env.DATABASE_URL, serverless: env.IS_VERCEL } }));
+app.get('/', (_req,res)=> res.json({ name:'Dayflow HRMS API', version: env.APP_VERSION, health:'/api/health', apiDocs:'/api/docs', docs:'https://github.com/vardhan23v/Human-Resource-Management-System' }));
+app.get('/api/health', (_req,res)=> res.json({ status:'ok', time: new Date().toISOString(), version: env.APP_VERSION, drivers: { storage: storageDriverName, mail: mailDriverName, rateLimit: rateLimitDriverName, sentry: !!env.SENTRY_DSN }, db: { host: env.DB_HOST, port: env.DB_PORT, name: env.DB_NAME, ssl: env.DB_SSL, fromUrl: !!process.env.DATABASE_URL, serverless: env.IS_VERCEL } }));
+
+// API docs (OpenAPI 3 + Scalar UI; CSP relaxed for the CDN on this one route)
+app.get('/api/openapi.json', (_req,res)=> res.json(openapi));
+app.get('/api/docs', (_req,res)=> { res.setHeader('Content-Security-Policy', "default-src 'self' https://cdn.jsdelivr.net https://fonts.googleapis.com https://fonts.gstatic.com 'unsafe-inline' 'unsafe-eval' data: blob:"); res.type('html').send(docsHtml); });
 
 // routes
 app.use('/api/auth', authRoutes);

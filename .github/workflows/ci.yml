@@ -1,0 +1,20 @@
+name: CI
+on:
+  push: { branches: [main] }
+  pull_request:
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20, cache: npm }
+      - run: npm ci
+      - name: Typecheck API
+        run: npx tsc --noEmit -p backend
+      - name: Typecheck + build SPA
+        run: npm run build --workspace=frontend
+      - name: Unit tests
+        run: npm test --workspace=backend
+      - name: Build API
+        run: npm run build --workspace=backend

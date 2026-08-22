@@ -5,6 +5,7 @@ import { calculateSalaryComponents } from '../../utils/helpers';
 import fs from 'fs';
 import path from 'path';
 import { env } from '../../config/env';
+import { storage } from '../../utils/storage';
 import PDFDocument from 'pdfkit';
 
 export async function getSalaryStructure(actor:any, employeeId:string){
@@ -170,13 +171,11 @@ export async function generatePayslipPdf(companyId:string, employeeId:string, mo
   if(!rows.length) return null;
   const p=rows[0];
   const breakdown= typeof p.breakdown==='string'? JSON.parse(p.breakdown): p.breakdown;
-  const dir=path.join(env.STORAGE_PATH,'payslips', employeeId);
-  fs.mkdirSync(dir,{recursive:true});
-  const filePath=path.join(dir, `${monthDate}.pdf`);
-  await new Promise<void>((resolve,reject)=>{
+  const key=`payslips/${employeeId}/${monthDate}.pdf`;
+  const pdf:Buffer = await new Promise<Buffer>((resolve,reject)=>{
     const doc=new PDFDocument({ margin:50 });
-    const stream=fs.createWriteStream(filePath);
-    doc.pipe(stream);
+    const chunks:Buffer[]=[];
+    doc.on('data',(c:Buffer)=>chunks.push(c)); doc.on('end',()=>resolve(Buffer.concat(chunks))); doc.on('error',reject);
     doc.fontSize(20).text(p.companyName, { align:'center' });
     doc.moveDown().fontSize(14).text(`Payslip — ${monthDate.slice(0,7)}`, { align:'center' });
     doc.moveDown().fontSize(10).text(`Employee: ${p.employeeName} (${p.employee_id.slice(0,8)})`);
@@ -192,9 +191,8 @@ export async function generatePayslipPdf(companyId:string, employeeId:string, mo
     doc.moveDown().fontSize(14).text(`Net Pay: ₹${p.net}`, { align:'right' });
     doc.moveDown().fontSize(8).text('This is a computer generated payslip', { align:'center' });
     doc.end();
-    stream.on('finish', resolve);
-    stream.on('error', reject);
   });
-  await pool.execute('UPDATE payslips SET pdf_url=? WHERE id=?',[`/storage/payslips/${employeeId}/${monthDate}.pdf`, p.id]);
-  return filePath;
+  await storage.put(key, pdf, 'application/pdf');
+  await pool.execute('UPDATE payslips SET pdf_url=? WHERE id=?',[key, p.id]);
+  return { key, pdf };
 }

@@ -1,8 +1,16 @@
 import { Request, Response, NextFunction } from 'express';
 import { AppError } from '../utils/errors';
+import { captureError } from '../utils/observability';
 
-export function errorHandler(err: any, _req: Request, res: Response, _next: NextFunction) {
-  console.error('[error]', err);
+export function errorHandler(err: any, req: Request, res: Response, _next: NextFunction) {
+  const requestId = (req as any).correlationId;
+  if (err instanceof AppError && err.statusCode < 500) {
+    // expected client errors — no stack noise
+  } else {
+    console.error(JSON.stringify({ level: 'error', requestId, method: req.method, url: req.originalUrl, code: err?.code, message: err?.message }));
+    captureError(err, { requestId, method: req.method, url: req.originalUrl, user: (req as any).user?.id });
+  }
+  res.setHeader('X-Request-Id', requestId || '');
   if (err instanceof AppError) {
     return res.status(err.statusCode).json({ error: { code: err.code, message: err.message, details: err.details } });
   }
